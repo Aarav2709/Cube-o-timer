@@ -1,7 +1,3 @@
-/**
- * SplitEditor: Component for configuring training split phases.
- */
-
 import React, { useCallback, useState, useRef } from "react";
 import { SplitPhaseDefinition } from "../../types";
 
@@ -42,10 +38,10 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "var(--space-3)",
-    padding: "var(--space-3)",
+    gap: "8px",
+    padding: "10px",
     backgroundColor: "var(--color-surface)",
-    borderRadius: "var(--border-radius-md)",
+    borderRadius: "4px",
     border: "1px solid var(--color-border)",
   } as React.CSSProperties,
 
@@ -56,7 +52,7 @@ const styles = {
   } as React.CSSProperties,
 
   title: {
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 600,
     color: "var(--color-text-primary)",
     textTransform: "uppercase",
@@ -65,28 +61,28 @@ const styles = {
 
   presetsContainer: {
     display: "flex",
-    gap: "var(--space-1)",
+    gap: "4px",
     flexWrap: "wrap",
     alignItems: "center",
   } as React.CSSProperties,
 
   presetsLabel: {
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     color: "var(--color-text-muted)",
-    marginRight: "var(--space-0)",
+    marginRight: "2px",
   } as React.CSSProperties,
 
   presetButton: {
-    padding: "2px var(--space-2)",
-    fontSize: "10px",
+    padding: "2px 6px",
+    fontSize: "9px",
     fontWeight: 500,
     fontFamily: "var(--font-ui)",
     color: "var(--color-text-secondary)",
     backgroundColor: "var(--color-surface-raised)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-sm)",
+    borderRadius: "3px",
     cursor: "pointer",
-    transition: "all var(--transition-fast)",
+    transition: "all 40ms ease-out",
   } as React.CSSProperties,
 
   presetButtonHover: {
@@ -97,7 +93,7 @@ const styles = {
   clearButton: {
     color: "var(--color-error)",
     borderColor: "var(--color-error)",
-    backgroundColor: "rgba(248, 113, 113, 0.1)",
+    backgroundColor: "rgba(248, 113, 113, 0.08)",
   } as React.CSSProperties,
 
   phasesList: {
@@ -107,40 +103,40 @@ const styles = {
 
   emptyState: {
     textAlign: "center",
-    padding: "var(--space-4)",
+    padding: "12px",
     color: "var(--color-text-muted)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
   } as React.CSSProperties,
 
   phaseRow: {
     display: "flex",
     alignItems: "center",
-    gap: "var(--space-1)",
-    padding: "var(--space-1)",
+    gap: "4px",
+    padding: "3px",
     backgroundColor: "var(--color-surface-raised)",
-    borderRadius: "var(--border-radius-sm)",
-    marginBottom: "var(--space-1)",
+    borderRadius: "3px",
+    marginBottom: "3px",
   } as React.CSSProperties,
 
   phaseIndex: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-muted)",
-    minWidth: "16px",
+    minWidth: "14px",
     textAlign: "center",
   } as React.CSSProperties,
 
   phaseInput: {
     flex: 1,
-    padding: "var(--space-1) var(--space-2)",
-    fontSize: "var(--text-sm)",
+    padding: "3px 6px",
+    fontSize: "11px",
     fontFamily: "var(--font-ui)",
     backgroundColor: "var(--color-void)",
     color: "var(--color-text-primary)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-sm)",
+    borderRadius: "3px",
     outline: "none",
-    transition: "border-color var(--transition-fast)",
+    transition: "border-color 40ms ease-out",
   } as React.CSSProperties,
 
   phaseInputFocus: {
@@ -151,17 +147,17 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "24px",
-    height: "24px",
+    width: "20px",
+    height: "20px",
     padding: 0,
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontFamily: "var(--font-ui)",
     color: "var(--color-text-muted)",
     backgroundColor: "var(--color-surface)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-sm)",
+    borderRadius: "3px",
     cursor: "pointer",
-    transition: "all var(--transition-fast)",
+    transition: "all 40ms ease-out",
   } as React.CSSProperties,
 
   rowButtonDisabled: {
@@ -175,33 +171,33 @@ const styles = {
 
   addPhaseContainer: {
     display: "flex",
-    gap: "var(--space-1)",
-    marginTop: "var(--space-1)",
+    gap: "4px",
+    marginTop: "2px",
   } as React.CSSProperties,
 
   addInput: {
     flex: 1,
-    padding: "var(--space-1) var(--space-2)",
-    fontSize: "var(--text-sm)",
+    padding: "3px 6px",
+    fontSize: "11px",
     fontFamily: "var(--font-ui)",
     backgroundColor: "var(--color-void)",
     color: "var(--color-text-primary)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-sm)",
+    borderRadius: "3px",
     outline: "none",
   } as React.CSSProperties,
 
   addButton: {
-    padding: "var(--space-1) var(--space-3)",
-    fontSize: "var(--text-xs)",
+    padding: "3px 10px",
+    fontSize: "10px",
     fontWeight: 500,
     fontFamily: "var(--font-ui)",
     color: "var(--color-ready)",
-    backgroundColor: "rgba(74, 222, 128, 0.12)",
+    backgroundColor: "rgba(74, 222, 128, 0.1)",
     border: "none",
-    borderRadius: "var(--border-radius-sm)",
+    borderRadius: "3px",
     cursor: "pointer",
-    transition: "all var(--transition-fast)",
+    transition: "all 40ms ease-out",
   } as React.CSSProperties,
 
   addButtonDisabled: {
@@ -210,10 +206,26 @@ const styles = {
   } as React.CSSProperties,
 
   hint: {
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-muted)",
-    marginTop: "var(--space-1)",
+    marginTop: "2px",
     textAlign: "center",
+  } as React.CSSProperties,
+
+  kbd: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "10px",
+    padding: "0 2px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "8px",
+    fontWeight: 500,
+    lineHeight: 1.3,
+    color: "var(--color-text-muted)",
+    backgroundColor: "var(--color-surface-raised)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "2px",
   } as React.CSSProperties,
 };
 
@@ -263,7 +275,6 @@ function PhaseRow({
   return (
     <div style={styles.phaseRow}>
       <span style={styles.phaseIndex as React.CSSProperties}>{index + 1}</span>
-
       <input
         type="text"
         value={phase.name}
@@ -277,9 +288,7 @@ function PhaseRow({
           ...(isFocused ? styles.phaseInputFocus : {}),
         }}
         disabled={disabled}
-        aria-label={`Phase ${index + 1} name`}
       />
-
       <button
         onClick={onMoveUp}
         disabled={disabled || !canMoveUp}
@@ -287,12 +296,9 @@ function PhaseRow({
           ...styles.rowButton,
           ...(!canMoveUp ? styles.rowButtonDisabled : {}),
         }}
-        title="Move up"
-        aria-label="Move phase up"
       >
         ↑
       </button>
-
       <button
         onClick={onMoveDown}
         disabled={disabled || !canMoveDown}
@@ -300,12 +306,9 @@ function PhaseRow({
           ...styles.rowButton,
           ...(!canMoveDown ? styles.rowButtonDisabled : {}),
         }}
-        title="Move down"
-        aria-label="Move phase down"
       >
         ↓
       </button>
-
       <button
         onClick={onRemove}
         disabled={disabled}
@@ -313,8 +316,6 @@ function PhaseRow({
           ...styles.rowButton,
           ...styles.removeButton,
         }}
-        title="Remove phase"
-        aria-label="Remove phase"
       >
         ×
       </button>
@@ -331,7 +332,6 @@ export function SplitEditor({
   const [hoveredPreset, setHoveredPreset] = useState<string | null>(null);
   const newInputRef = useRef<HTMLInputElement>(null);
 
-  // Normalize orders based on array position
   const normalizeOrders = useCallback(
     (p: SplitPhaseDefinition[]): SplitPhaseDefinition[] => {
       return p.map((phase, idx) => ({ ...phase, order: idx + 1 }));
@@ -341,12 +341,10 @@ export function SplitEditor({
 
   const handleAddPhase = useCallback(() => {
     if (newPhaseName.trim() === "") return;
-
     const newPhase: SplitPhaseDefinition = {
       name: newPhaseName.trim(),
       order: phases.length + 1,
     };
-
     onChange(normalizeOrders([...phases, newPhase]));
     setNewPhaseName("");
     newInputRef.current?.focus();
@@ -426,12 +424,10 @@ export function SplitEditor({
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <span style={styles.title as React.CSSProperties}>Split Phases</span>
       </div>
 
-      {/* Presets */}
       <div style={styles.presetsContainer as React.CSSProperties}>
         <span style={styles.presetsLabel}>Presets:</span>
         {Object.keys(PRESETS).map((name) => (
@@ -445,7 +441,6 @@ export function SplitEditor({
               ...(hoveredPreset === name ? styles.presetButtonHover : {}),
             }}
             disabled={disabled}
-            title={`Load ${name} phases`}
           >
             {name}
           </button>
@@ -458,18 +453,16 @@ export function SplitEditor({
               ...styles.clearButton,
             }}
             disabled={disabled}
-            title="Clear all phases"
           >
             Clear
           </button>
         )}
       </div>
 
-      {/* Phases List */}
       <div style={styles.phasesList as React.CSSProperties}>
         {phases.length === 0 ? (
           <div style={styles.emptyState as React.CSSProperties}>
-            No phases defined. Add phases below or select a preset.
+            No phases. Add below or select a preset.
           </div>
         ) : (
           phases.map((phase, index) => (
@@ -488,7 +481,6 @@ export function SplitEditor({
         )}
       </div>
 
-      {/* Add New Phase */}
       <div style={styles.addPhaseContainer}>
         <input
           ref={newInputRef}
@@ -496,10 +488,9 @@ export function SplitEditor({
           value={newPhaseName}
           onChange={(e) => setNewPhaseName(e.target.value)}
           onKeyDown={handleNewPhaseKeyDown}
-          placeholder="New phase name..."
+          placeholder="New phase..."
           style={styles.addInput}
           disabled={disabled}
-          aria-label="New phase name"
         />
         <button
           onClick={handleAddPhase}
@@ -508,16 +499,14 @@ export function SplitEditor({
             ...(!canAdd ? styles.addButtonDisabled : {}),
           }}
           disabled={!canAdd}
-          title="Add phase (Enter)"
         >
           Add
         </button>
       </div>
 
-      {/* Hint */}
       <div style={styles.hint as React.CSSProperties}>
-        <span className="kbd">Enter</span> to add •{" "}
-        <span className="kbd">Backspace</span> on empty to remove
+        <span style={styles.kbd}>Enter</span> add ·{" "}
+        <span style={styles.kbd}>⌫</span> remove empty
       </div>
     </div>
   );

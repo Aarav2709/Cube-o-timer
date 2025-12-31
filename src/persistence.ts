@@ -1,7 +1,3 @@
-/**
- * Persistence layer for KubeTimr with IndexedDB and file fallback.
- */
-
 import { CURRENT_SCHEMA_VERSION, PersistedData } from "./types";
 
 export interface PersistenceAdapter {
@@ -26,6 +22,8 @@ const DEFAULT_DATA: PersistedData = {
   sessions: [],
   solves: [],
   splits: [],
+  settings: undefined,
+  activePuzzleId: undefined,
 };
 
 function validateSchema(data: PersistedData): PersistedData {
@@ -34,7 +32,7 @@ function validateSchema(data: PersistedData): PersistedData {
       `Unsupported schema version ${data.schemaVersion}; expected ${CURRENT_SCHEMA_VERSION}.`,
     );
   }
-  return data;
+  return { ...DEFAULT_DATA, ...data };
 }
 
 class FileAdapter implements PersistenceAdapter {

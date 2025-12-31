@@ -1,21 +1,20 @@
-/**
- * StatsPanel: Statistics display with decimal-aligned numbers.
- */
-
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { SessionStatsResult } from "../../statsEngine";
 import {
   DurationMs,
   PersonalBest,
-  RollingStats,
+  SolveId,
   StatWindowResult,
+  TimelinePoint,
 } from "../../types";
 
 export interface StatsPanelProps {
-  stats: RollingStats | null;
-  personalBests: PersonalBest[];
+  stats: SessionStatsResult | null;
+  personalBests?: PersonalBest[];
   moXAo5Value: number;
   onMoXAo5Change: (value: number) => void;
   solveCount: number;
+  selectedSolveId?: SolveId | null;
 }
 
 interface FormattedTime {
@@ -52,18 +51,19 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "var(--space-0)",
+    height: "100%",
+    minHeight: 0,
   } as React.CSSProperties,
 
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "var(--space-1)",
+    marginBottom: "4px",
   } as React.CSSProperties,
 
   headerTitle: {
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: 600,
     color: "var(--color-text-muted)",
     textTransform: "uppercase",
@@ -72,7 +72,7 @@ const styles = {
 
   headerCount: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     color: "var(--color-text-muted)",
     fontVariantNumeric: "tabular-nums",
     fontWeight: 500,
@@ -82,9 +82,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "var(--space-6) var(--space-3)",
+    padding: "var(--space-4) var(--space-2)",
     color: "var(--color-text-muted)",
-    fontSize: "var(--text-sm)",
+    fontSize: "var(--text-xs)",
     textAlign: "center",
   } as React.CSSProperties,
 
@@ -93,23 +93,26 @@ const styles = {
     flexDirection: "column",
   } as React.CSSProperties,
 
-  divider: {
-    height: "1px",
-    backgroundColor: "var(--color-border-subtle)",
-    margin: "var(--space-2) 0",
+  sectionLabel: {
+    fontSize: "8px",
+    fontWeight: 600,
+    color: "var(--color-text-disabled)",
+    textTransform: "uppercase",
+    letterSpacing: "0.1em",
+    marginTop: "8px",
+    marginBottom: "2px",
   } as React.CSSProperties,
 
-  /* Stat row styles — compact */
   statRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "2px 0",
-    minHeight: "22px",
+    padding: "1px 0",
+    minHeight: "17px",
   } as React.CSSProperties,
 
   statLabel: {
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 500,
     color: "var(--color-text-secondary)",
     textTransform: "uppercase",
@@ -120,22 +123,12 @@ const styles = {
     display: "flex",
     alignItems: "baseline",
     justifyContent: "flex-end",
-    gap: "var(--space-1)",
-  } as React.CSSProperties,
-
-  statValue: {
-    fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
-    fontWeight: 600,
-    fontVariantNumeric: "tabular-nums",
-    color: "var(--color-text-primary)",
-    textAlign: "right",
-    minWidth: "52px",
+    gap: "1px",
   } as React.CSSProperties,
 
   statValueWhole: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
+    fontSize: "11px",
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-primary)",
@@ -144,12 +137,12 @@ const styles = {
 
   statValueDecimal: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     fontWeight: 500,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-secondary)",
-    opacity: 0.8,
-    minWidth: "18px",
+    opacity: 0.7,
+    minWidth: "14px",
     textAlign: "left",
   } as React.CSSProperties,
 
@@ -159,65 +152,93 @@ const styles = {
 
   statValueDnf: {
     color: "var(--color-error-muted)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
+  } as React.CSSProperties,
+
+  statValueHighlight: {
+    color: "var(--color-focus)",
   } as React.CSSProperties,
 
   pbBadge: {
     display: "inline-flex",
     alignItems: "center",
-    padding: "1px 4px",
-    fontSize: "9px",
+    padding: "0 2px",
+    fontSize: "7px",
     fontWeight: 700,
-    color: "var(--color-pb)",
-    backgroundColor: "rgba(167, 139, 250, 0.12)",
-    borderRadius: "var(--border-radius-sm)",
+    color: "rgba(167, 139, 250, 0.9)",
+    backgroundColor: "rgba(167, 139, 250, 0.1)",
+    borderRadius: "2px",
     textTransform: "uppercase",
-    letterSpacing: "0.03em",
-    marginLeft: "var(--space-1)",
+    letterSpacing: "0.02em",
+    marginLeft: "4px",
+    lineHeight: 1.4,
   } as React.CSSProperties,
 
-  /* MoXAo5 section — distinct styling */
   moXAo5Container: {
+    marginTop: "10px",
+    padding: "8px",
+    backgroundColor: "var(--color-surface)",
+    borderRadius: "4px",
+    border: "1px solid var(--color-border-subtle)",
+  } as React.CSSProperties,
+
+  moXAo5Header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "var(--space-2)",
-    backgroundColor: "var(--color-surface-raised)",
-    borderRadius: "var(--border-radius-md)",
-    border: "1px solid var(--color-border-subtle)",
-    marginTop: "var(--space-1)",
+    marginBottom: "6px",
   } as React.CSSProperties,
 
   moXAo5Label: {
-    display: "flex",
-    alignItems: "center",
-    gap: "2px",
-    fontSize: "var(--text-xs)",
-    fontWeight: 500,
-    color: "var(--color-text-secondary)",
-  } as React.CSSProperties,
-
-  moXAo5Select: {
-    padding: "2px 18px 2px 4px",
-    fontSize: "var(--text-xs)",
-    fontFamily: "var(--font-mono)",
+    fontSize: "9px",
     fontWeight: 600,
-    backgroundColor: "var(--color-surface)",
-    color: "var(--color-text-primary)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-sm)",
-    cursor: "pointer",
-    minWidth: "42px",
+    color: "var(--color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
   } as React.CSSProperties,
 
   moXAo5Value: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
+    fontSize: "13px",
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-primary)",
   } as React.CSSProperties,
+
+  moXAo5Buttons: {
+    display: "flex",
+    gap: "3px",
+  } as React.CSSProperties,
+
+  moXAo5Button: {
+    flex: 1,
+    padding: "4px 0",
+    fontSize: "9px",
+    fontFamily: "var(--font-mono)",
+    fontWeight: 500,
+    color: "var(--color-text-muted)",
+    backgroundColor: "transparent",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
+    borderRadius: "3px",
+    cursor: "pointer",
+    transition: "all 40ms ease-out",
+  } as React.CSSProperties,
+
+  moXAo5ButtonActive: {
+    backgroundColor: "rgba(96, 165, 250, 0.12)",
+    borderColor: "var(--color-focus)",
+    color: "var(--color-focus)",
+  } as React.CSSProperties,
+
+  moXAo5ButtonHover: {
+    borderColor: "var(--color-text-muted)",
+    color: "var(--color-text-secondary)",
+  } as React.CSSProperties,
 };
+
+const MOX_OPTIONS = [5, 10, 12, 20, 50, 100];
 
 interface StatRowProps {
   label: string;
@@ -225,7 +246,7 @@ interface StatRowProps {
   isPB?: boolean;
   isDnf?: boolean;
   isDisabled?: boolean;
-  tooltip?: string;
+  isHighlighted?: boolean;
 }
 
 function StatRow({
@@ -234,21 +255,23 @@ function StatRow({
   isPB = false,
   isDnf = false,
   isDisabled = false,
-  tooltip,
+  isHighlighted = false,
 }: StatRowProps) {
   const formatted = formatTime(value);
   const showDecimal = formatted.decimal !== "" && !isDnf;
 
   return (
-    <div style={styles.statRow} title={tooltip}>
+    <div style={styles.statRow}>
       <span style={styles.statLabel}>{label}</span>
       <div style={styles.statValueContainer}>
         {isDnf ? (
-          <span style={{ ...styles.statValue, ...styles.statValueDnf }}>
+          <span style={{ ...styles.statValueWhole, ...styles.statValueDnf }}>
             DNF
           </span>
         ) : isDisabled ? (
-          <span style={{ ...styles.statValue, ...styles.statValueDisabled }}>
+          <span
+            style={{ ...styles.statValueWhole, ...styles.statValueDisabled }}
+          >
             —
           </span>
         ) : (
@@ -256,7 +279,7 @@ function StatRow({
             <span
               style={{
                 ...styles.statValueWhole,
-                ...(isDisabled ? styles.statValueDisabled : {}),
+                ...(isHighlighted ? styles.statValueHighlight : {}),
               }}
             >
               {formatted.whole}
@@ -280,14 +303,32 @@ export function StatsPanel({
   moXAo5Value,
   onMoXAo5Change,
   solveCount,
+  selectedSolveId,
 }: StatsPanelProps) {
+  const rolling = stats?.rolling ?? null;
+  const timeline = stats?.timeline ?? [];
+  const pbList = useMemo(
+    () => personalBests ?? stats?.personalBests ?? [],
+    [personalBests, stats?.personalBests],
+  );
+
+  const indexById = useMemo(() => {
+    const map = new Map<SolveId, number>();
+    timeline.forEach((t: TimelinePoint) => map.set(t.solveId, t.index));
+    return map;
+  }, [timeline]);
+
+  const selectedIndex =
+    selectedSolveId != null ? indexById.get(selectedSolveId) : undefined;
+
   const isPB = useCallback(
     (type: PersonalBest["type"], size?: number): boolean => {
-      return personalBests.some(
-        (pb) => pb.type === type && (size === undefined || pb.size === size),
+      return pbList.some(
+        (pb: PersonalBest) =>
+          pb.type === type && (size === undefined || pb.size === size),
       );
     },
-    [personalBests],
+    [pbList],
   );
 
   const getWindowValue = (
@@ -297,16 +338,22 @@ export function StatsPanel({
     return result.valueMs;
   };
 
-  const moXAo5Options = useMemo(() => [5, 10, 12, 20, 50, 100], []);
+  const isSelectedInWindow = (result: StatWindowResult | null): boolean => {
+    if (selectedIndex === undefined || !result) return false;
+    return result.indices.includes(selectedIndex);
+  };
 
-  const handleMoXAo5Change = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      onMoXAo5Change(parseInt(e.target.value, 10));
-    },
-    [onMoXAo5Change],
-  );
+  const isSelectedSinglePB = useMemo(() => {
+    if (!selectedSolveId) return false;
+    return pbList.some(
+      (pb: PersonalBest) =>
+        pb.type === "single" && pb.solveIds.includes(selectedSolveId),
+    );
+  }, [pbList, selectedSolveId]);
 
-  if (!stats || solveCount === 0) {
+  const [hoveredMoX, setHoveredMoX] = useState<number | null>(null);
+
+  if (!rolling || solveCount === 0) {
     return (
       <div style={styles.container}>
         <div style={styles.header}>
@@ -315,7 +362,7 @@ export function StatsPanel({
           </span>
         </div>
         <div style={styles.emptyState as React.CSSProperties}>
-          Complete solves to see statistics
+          Complete solves to see stats
         </div>
       </div>
     );
@@ -323,7 +370,6 @@ export function StatsPanel({
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <span style={styles.headerTitle as React.CSSProperties}>
           Statistics
@@ -331,99 +377,110 @@ export function StatsPanel({
         <span style={styles.headerCount}>{solveCount}</span>
       </div>
 
-      {/* Primary stats: Best / Worst / Mean */}
       <div style={styles.section as React.CSSProperties}>
-        <StatRow label="Best" value={stats.bestMs} isPB={isPB("single")} />
-        <StatRow label="Worst" value={stats.worstMs} />
-        <StatRow label="Mean" value={stats.meanMs} />
+        <StatRow
+          label="Best"
+          value={rolling.bestMs}
+          isPB={isPB("single")}
+          isHighlighted={isSelectedSinglePB}
+        />
+        <StatRow label="Worst" value={rolling.worstMs} />
+        <StatRow label="Mean" value={rolling.meanMs} />
       </div>
 
-      <div style={styles.divider} />
+      <span style={styles.sectionLabel as React.CSSProperties}>Averages</span>
 
-      {/* Rolling averages */}
       <div style={styles.section as React.CSSProperties}>
         <StatRow
           label="Mo3"
-          value={getWindowValue(stats.mo3)}
+          value={getWindowValue(rolling.mo3)}
           isPB={isPB("mo3", 3)}
-          isDnf={stats.mo3?.isDnf}
-          isDisabled={!stats.mo3}
-          tooltip={stats.mo3?.isDnf ? "Contains 2+ DNFs" : undefined}
+          isDnf={rolling.mo3?.isDnf}
+          isDisabled={!rolling.mo3}
+          isHighlighted={isSelectedInWindow(rolling.mo3)}
         />
         <StatRow
           label="Ao5"
-          value={getWindowValue(stats.ao5)}
+          value={getWindowValue(rolling.ao5)}
           isPB={isPB("ao5", 5)}
-          isDnf={stats.ao5?.isDnf}
-          isDisabled={!stats.ao5}
-          tooltip={stats.ao5?.isDnf ? "Too many DNFs for average" : undefined}
+          isDnf={rolling.ao5?.isDnf}
+          isDisabled={!rolling.ao5}
+          isHighlighted={isSelectedInWindow(rolling.ao5)}
         />
         <StatRow
           label="Ao12"
-          value={getWindowValue(stats.ao12)}
+          value={getWindowValue(rolling.ao12)}
           isPB={isPB("ao12", 12)}
-          isDnf={stats.ao12?.isDnf}
-          isDisabled={!stats.ao12}
-          tooltip={stats.ao12?.isDnf ? "Too many DNFs for average" : undefined}
+          isDnf={rolling.ao12?.isDnf}
+          isDisabled={!rolling.ao12}
+          isHighlighted={isSelectedInWindow(rolling.ao12)}
         />
-
-        {/* Larger windows — only show if available */}
-        {stats.ao50 && (
+        {rolling.ao50 && (
           <StatRow
             label="Ao50"
-            value={getWindowValue(stats.ao50)}
-            isDnf={stats.ao50?.isDnf}
+            value={getWindowValue(rolling.ao50)}
+            isDnf={rolling.ao50?.isDnf}
+            isHighlighted={isSelectedInWindow(rolling.ao50)}
           />
         )}
-        {stats.ao100 && (
+        {rolling.ao100 && (
           <StatRow
             label="Ao100"
-            value={getWindowValue(stats.ao100)}
-            isDnf={stats.ao100?.isDnf}
+            value={getWindowValue(rolling.ao100)}
+            isDnf={rolling.ao100?.isDnf}
+            isHighlighted={isSelectedInWindow(rolling.ao100)}
           />
         )}
-        {stats.ao1000 && (
+        {rolling.ao1000 && (
           <StatRow
             label="Ao1000"
-            value={getWindowValue(stats.ao1000)}
-            isDnf={stats.ao1000?.isDnf}
+            value={getWindowValue(rolling.ao1000)}
+            isDnf={rolling.ao1000?.isDnf}
+            isHighlighted={isSelectedInWindow(rolling.ao1000)}
           />
         )}
       </div>
 
-      <div style={styles.divider} />
-
-      {/* MoXAo5 — Custom rolling average */}
       <div style={styles.moXAo5Container}>
-        <div style={styles.moXAo5Label}>
-          <span>Mo</span>
-          <select
-            value={moXAo5Value}
-            onChange={handleMoXAo5Change}
-            style={styles.moXAo5Select}
-            aria-label="Select MoXAo5 window size"
+        <div style={styles.moXAo5Header}>
+          <span style={styles.moXAo5Label}>Mo{moXAo5Value} Ao5</span>
+          <span
+            style={{
+              ...styles.moXAo5Value,
+              ...(rolling.moXAo5?.result?.isDnf ? styles.statValueDnf : {}),
+              ...(!rolling.moXAo5?.result ? styles.statValueDisabled : {}),
+              ...(isSelectedInWindow(rolling.moXAo5?.result ?? null)
+                ? styles.statValueHighlight
+                : {}),
+            }}
           >
-            {moXAo5Options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-          <span>Ao5</span>
+            {rolling.moXAo5?.result
+              ? rolling.moXAo5.result.isDnf
+                ? "DNF"
+                : formatTimeSimple(rolling.moXAo5.result.valueMs)
+              : "—"}
+          </span>
         </div>
-        <span
-          style={{
-            ...styles.moXAo5Value,
-            ...(stats.moXAo5?.result?.isDnf ? styles.statValueDnf : {}),
-            ...(!stats.moXAo5?.result ? styles.statValueDisabled : {}),
-          }}
-        >
-          {stats.moXAo5?.result
-            ? stats.moXAo5.result.isDnf
-              ? "DNF"
-              : formatTimeSimple(stats.moXAo5.result.valueMs)
-            : "—"}
-        </span>
+        <div style={styles.moXAo5Buttons}>
+          {MOX_OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              onClick={() => onMoXAo5Change(opt)}
+              onMouseEnter={() => setHoveredMoX(opt)}
+              onMouseLeave={() => setHoveredMoX(null)}
+              style={{
+                ...styles.moXAo5Button,
+                ...(moXAo5Value === opt ? styles.moXAo5ButtonActive : {}),
+                ...(hoveredMoX === opt && moXAo5Value !== opt
+                  ? styles.moXAo5ButtonHover
+                  : {}),
+              }}
+              aria-pressed={moXAo5Value === opt}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,31 @@
 
 A keyboard-first, offline-first cube timer for serious speedcubers. Cleaner than CSTimer, focused on precision and flow.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/img1.png" width="400" alt="Main Screen"/>
+      <br/><em>Main Screen</em>
+    </td>
+    <td align="center">
+      <img src="screenshots/img2.png" width="400" alt="Inspection Time"/>
+      <br/><em>Inspection Time</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/img3.png" width="400" alt="Solving Time"/>
+      <br/><em>Solving Time</em>
+    </td>
+    <td align="center">
+      <img src="screenshots/img4.png" width="400" alt="Result"/>
+      <br/><em>Result</em>
+    </td>
+  </tr>
+</table>
+
 Built by cubers, for cubers. No accounts, no cloud sync, no ads. Just timing.
 
 ## Features
@@ -31,7 +56,7 @@ Built by cubers, for cubers. No accounts, no cloud sync, no ads. Just timing.
 
 ### Data Management
 - Offline-first: all data stored locally via IndexedDB or localStorage
-- CSTimer import support (.txt and JSON formats)
+- CSTimer import support (.txt exports only)
 - Session-based solve organization
 - No network calls, no cloud sync, no accounts
 
@@ -51,7 +76,8 @@ Built by cubers, for cubers. No accounts, no cloud sync, no ads. Just timing.
 | `↓` / `J` | Navigate down in solve list |
 | `2` | Toggle +2 penalty |
 | `D` | Toggle DNF penalty |
-| `0` / `Esc` | Clear penalty |
+| `0` | Clear penalty |
+| `Enter` | Select solve |
 | `Del` / `Backspace` | Delete selected solve |
 
 ### Controls

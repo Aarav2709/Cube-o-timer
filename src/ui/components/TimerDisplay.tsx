@@ -1,8 +1,3 @@
-/**
- * TimerDisplay: Central time display with state-based colors.
- * Uses tight kerning, tabular nums, and optically-centered decimal.
- */
-
 import React, { useMemo, useEffect, useState } from "react";
 import { TimingState, Penalty, DurationMs } from "../../types";
 
@@ -22,7 +17,32 @@ interface FormattedTime {
   hasMinutes: boolean;
 }
 
-function formatTime(ms: DurationMs): FormattedTime {
+function formatTimeRunning(ms: DurationMs): FormattedTime {
+  if (ms < 0) ms = 0;
+
+  const totalTenths = Math.floor(ms / 100);
+  const tenths = totalTenths % 10;
+  const totalSeconds = Math.floor(ms / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60);
+
+  if (minutes > 0) {
+    const secStr = seconds.toString().padStart(2, "0");
+    return {
+      main: `${minutes}:${secStr}`,
+      decimal: tenths.toString(),
+      hasMinutes: true,
+    };
+  }
+
+  return {
+    main: seconds.toString(),
+    decimal: tenths.toString(),
+    hasMinutes: false,
+  };
+}
+
+function formatTimeStopped(ms: DurationMs): FormattedTime {
   if (ms < 0) ms = 0;
 
   const totalCentiseconds = Math.floor(ms / 10);
@@ -97,14 +117,14 @@ const styles = {
     justifyContent: "center",
     userSelect: "none",
     WebkitUserSelect: "none",
-    padding: "var(--space-3)",
+    padding: "8px",
   } as React.CSSProperties,
 
   timeWrapper: {
     display: "flex",
     alignItems: "baseline",
     justifyContent: "center",
-    lineHeight: "var(--timer-line-height)",
+    lineHeight: 0.85,
   } as React.CSSProperties,
 
   mainDigits: {
@@ -114,64 +134,69 @@ const styles = {
     fontVariantNumeric: "tabular-nums slashed-zero",
     fontFeatureSettings: '"tnum" 1, "zero" 1, "kern" 1',
     letterSpacing: "var(--timer-letter-spacing)",
-    lineHeight: "var(--timer-line-height)",
-    transition: "color var(--transition-fast)",
+    lineHeight: 0.85,
+    transition: "color 40ms ease-out",
   } as React.CSSProperties,
 
   decimalPoint: {
     fontFamily: "var(--font-mono)",
-    fontSize: "calc(var(--timer-font-size) * 0.85)",
+    fontSize: "calc(var(--timer-font-size) * 0.62)",
     fontWeight: "var(--timer-font-weight)",
     fontVariantNumeric: "tabular-nums",
-    opacity: 0.8,
-    margin: "0 -0.04em",
+    opacity: 0.65,
+    margin: "0 -0.02em",
     display: "inline-block",
-    transform: "translateY(-0.03em)",
-    transition: "color var(--transition-fast)",
+    transform: "translateY(-0.12em)",
+    transition: "color 40ms ease-out",
   } as React.CSSProperties,
 
   decimalDigits: {
     fontFamily: "var(--font-mono)",
-    fontSize: "calc(var(--timer-font-size) * 0.85)",
+    fontSize: "calc(var(--timer-font-size) * 0.72)",
     fontWeight: "var(--timer-font-weight)",
     fontVariantNumeric: "tabular-nums slashed-zero",
     fontFeatureSettings: '"tnum" 1, "zero" 1',
     letterSpacing: "-0.02em",
-    lineHeight: "var(--timer-line-height)",
-    opacity: 0.8,
-    transition: "color var(--transition-fast)",
+    lineHeight: 0.85,
+    opacity: 0.68,
+    transition: "color 40ms ease-out, opacity 80ms ease-out",
+  } as React.CSSProperties,
+
+  decimalDigitsTrailing: {
+    opacity: 0.45,
   } as React.CSSProperties,
 
   penaltyBadge: {
     fontFamily: "var(--font-mono)",
-    fontSize: "clamp(1rem, 3vw, 2rem)",
+    fontSize: "clamp(0.9rem, 2.5vw, 1.8rem)",
     fontWeight: 600,
-    marginTop: "var(--space-1)",
+    marginTop: "6px",
     letterSpacing: "0.02em",
   } as React.CSSProperties,
 
   hint: {
     fontFamily: "var(--font-ui)",
-    fontSize: "var(--text-sm)",
+    fontSize: "11px",
     fontWeight: 400,
-    color: "var(--color-text-muted)",
-    marginTop: "var(--space-5)",
+    color: "var(--color-text-disabled)",
+    marginTop: "12px",
     textAlign: "center",
     letterSpacing: "0.01em",
+    transition: "opacity 80ms ease-out",
   } as React.CSSProperties,
 
   pbIndicator: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "var(--space-1)",
+    gap: "4px",
     fontFamily: "var(--font-ui)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 600,
     color: "var(--color-pb)",
-    marginTop: "var(--space-2)",
-    padding: "var(--space-1) var(--space-2)",
-    backgroundColor: "rgba(167, 139, 250, 0.12)",
-    borderRadius: "var(--border-radius-md)",
+    marginTop: "6px",
+    padding: "2px 8px",
+    backgroundColor: "rgba(167, 139, 250, 0.1)",
+    borderRadius: "4px",
     letterSpacing: "0.04em",
     textTransform: "uppercase",
   } as React.CSSProperties,
@@ -191,7 +216,7 @@ export function TimerDisplay({
   useEffect(() => {
     if (status === "stopped") {
       setJustStopped(true);
-      const timer = setTimeout(() => setJustStopped(false), 60);
+      const timer = setTimeout(() => setJustStopped(false), 50);
       return () => clearTimeout(timer);
     }
     setJustStopped(false);
@@ -213,7 +238,16 @@ export function TimerDisplay({
       return { main: "0", decimal: "00", isCountdown: false };
     }
 
-    const formatted = formatTime(displayTime);
+    if (status === "running") {
+      const formatted = formatTimeRunning(displayTime);
+      return {
+        main: formatted.main,
+        decimal: formatted.decimal,
+        isCountdown: false,
+      };
+    }
+
+    const formatted = formatTimeStopped(displayTime);
     return {
       main: formatted.main,
       decimal: formatted.decimal,
@@ -243,6 +277,12 @@ export function TimerDisplay({
         ? "var(--color-warn)"
         : color;
 
+  const decimalOpacity = status === "stopped" ? 0.58 : 0.72;
+  const decimalTailOpacity = status === "stopped" ? 0.38 : decimalOpacity;
+
+  const decimalFirst = displayContent.decimal?.slice(0, 1) ?? "";
+  const decimalTail = displayContent.decimal?.slice(1) ?? "";
+
   const hintText = useMemo(() => {
     if (status === "idle" && !isHolding) {
       return "Hold space to start";
@@ -253,35 +293,23 @@ export function TimerDisplay({
     return null;
   }, [status, isHolding]);
 
-  const containerClassName = justStopped ? "timer-settle" : "";
-
   return (
     <div
       style={styles.container}
-      className={containerClassName}
+      className={justStopped ? "timer-settle" : ""}
       role="timer"
       aria-live="polite"
       aria-atomic="true"
-      aria-label={`Timer: ${displayContent.main}${displayContent.decimal ? "." + displayContent.decimal : ""} seconds`}
     >
       <div style={styles.timeWrapper}>
-        <span
-          style={{
-            ...styles.mainDigits,
-            color,
-          }}
-          className="timer-digits"
-        >
+        <span style={{ ...styles.mainDigits, color }} className="timer-digits">
           {displayContent.main}
         </span>
 
         {!displayContent.isCountdown && displayContent.decimal && (
           <>
             <span
-              style={{
-                ...styles.decimalPoint,
-                color,
-              }}
+              style={{ ...styles.decimalPoint, color }}
               className="timer-decimal"
             >
               .
@@ -290,23 +318,31 @@ export function TimerDisplay({
               style={{
                 ...styles.decimalDigits,
                 color,
+                opacity: decimalOpacity,
               }}
               className="timer-decimal-digits"
             >
-              {displayContent.decimal}
+              {decimalFirst}
             </span>
+            {decimalTail && (
+              <span
+                style={{
+                  ...styles.decimalDigits,
+                  ...styles.decimalDigitsTrailing,
+                  color,
+                  opacity: decimalTailOpacity,
+                }}
+                className="timer-decimal-digits"
+              >
+                {decimalTail}
+              </span>
+            )}
           </>
         )}
       </div>
 
       {penaltySuffix && (
-        <div
-          style={{
-            ...styles.penaltyBadge,
-            color: penaltyColor,
-          }}
-          aria-label={`Penalty: ${penaltySuffix}`}
-        >
+        <div style={{ ...styles.penaltyBadge, color: penaltyColor }}>
           {penaltySuffix}
         </div>
       )}
@@ -314,8 +350,8 @@ export function TimerDisplay({
       {isPB && status === "stopped" && penalty === Penalty.None && (
         <div style={styles.pbIndicator}>
           <svg
-            width="12"
-            height="12"
+            width="10"
+            height="10"
             viewBox="0 0 24 24"
             fill="currentColor"
             aria-hidden="true"
@@ -326,9 +362,9 @@ export function TimerDisplay({
         </div>
       )}
 
-      {hintText && (
-        <div style={styles.hint as React.CSSProperties}>{hintText}</div>
-      )}
+      <div style={{ ...styles.hint, opacity: hintText ? 0.55 : 0 }}>
+        {hintText || "Hold space to start"}
+      </div>
     </div>
   );
 }

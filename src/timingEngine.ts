@@ -1,21 +1,12 @@
-/**
- * High-resolution timing engine with inspection and penalties.
- * Pure logic only — no UI, no timers, no DOM.
- */
-
 import { Penalty, TimingResult, TimingState } from "./types";
 
-/* Configuration & runtime state ------------------------------------------- */
-
 export interface TimingEngineConfig {
-  /** Inspection duration in milliseconds (commonly 0 or 15000). */
   inspectionDurationMs: number;
-  /** When true (default), apply WCA-style inspection overage penalties. */
   enableInspectionPenalties?: boolean;
 }
 
 export interface TimeSource {
-  now(): number; // typically performance.now()
+  now(): number;
 }
 
 export interface TimingEngineState {
@@ -34,8 +25,6 @@ export interface TimingEngineState {
   result?: TimingResult;
 }
 
-/* Factory ----------------------------------------------------------------- */
-
 export function createTimingEngineState(
   config: TimingEngineConfig,
   timeSource: TimeSource = { now: () => performance.now() },
@@ -49,8 +38,6 @@ export function createTimingEngineState(
     manualPenalty: Penalty.None,
   };
 }
-
-/* Helpers ----------------------------------------------------------------- */
 
 function combinePenalties(...penalties: Penalty[]): Penalty {
   if (penalties.some((p) => p === Penalty.DNF)) return Penalty.DNF;
@@ -79,14 +66,6 @@ function computeInspectionPenalty(
   return Penalty.DNF;
 }
 
-/* Transitions -------------------------------------------------------------- */
-
-/**
- * Handle spacebar-compatible toggle:
- * - idle/stopped -> start (inspection or running)
- * - inspection   -> begin solve (ends inspection)
- * - running      -> stop solve
- */
 export function handleSpacebar(state: TimingEngineState): TimingEngineState {
   switch (state.status) {
     case "idle":
@@ -101,7 +80,6 @@ export function handleSpacebar(state: TimingEngineState): TimingEngineState {
   }
 }
 
-/** Begin inspection (if configured) or start running immediately. */
 export function startOrInspect(state: TimingEngineState): TimingEngineState {
   const now = state.timeSource.now();
   const inspectionDurationMs = state.config.inspectionDurationMs ?? 0;
@@ -120,7 +98,6 @@ export function startOrInspect(state: TimingEngineState): TimingEngineState {
     };
   }
 
-  // Start running immediately (no inspection)
   return {
     ...state,
     status: "running",
@@ -134,10 +111,6 @@ export function startOrInspect(state: TimingEngineState): TimingEngineState {
   };
 }
 
-/**
- * Transition from inspection to running.
- * Computes inspection duration and penalty at transition time.
- */
 export function startRunningFromInspection(
   state: TimingEngineState,
 ): TimingEngineState {
@@ -162,7 +135,6 @@ export function startRunningFromInspection(
   };
 }
 
-/** Stop the running solve and compute the timing result. */
 export function stopSolve(state: TimingEngineState): TimingEngineState {
   if (state.status !== "running" || state.runStartTs == null) return state;
   const now = state.timeSource.now();
@@ -194,10 +166,6 @@ export function stopSolve(state: TimingEngineState): TimingEngineState {
   };
 }
 
-/**
- * Apply a manual penalty after a solve has been stopped.
- * Recomputes final duration according to combined penalties.
- */
 export function applyManualPenalty(
   state: TimingEngineState,
   penalty: Penalty,
@@ -230,8 +198,6 @@ export function applyManualPenalty(
     manualPenalty,
   };
 }
-
-/* Utility accessors ------------------------------------------------------- */
 
 export function isReadyToStart(state: TimingEngineState): boolean {
   return state.status === "idle" || state.status === "stopped";

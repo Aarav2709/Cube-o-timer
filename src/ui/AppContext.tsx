@@ -1,7 +1,3 @@
-/**
- * Global app state context for sessions, solves, splits, and settings.
- */
-
 import {
   createContext,
   useCallback,
@@ -15,6 +11,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   Penalty,
   PersistedData,
+  PersistedSettings,
   PuzzleId,
   Scramble,
   Session,
@@ -25,17 +22,26 @@ import {
   SplitPhaseDefinition,
   TimingResult,
   WcaEventId,
+  CSTimerImportData,
+  CSTimerSolveImport,
 } from "../types";
 import { loadPersistedData, savePersistedData } from "../persistence";
 import { generateScramble } from "../scrambleEngine";
 import { computeSessionStats, SessionStatsResult } from "../statsEngine";
-import { CSTimerImportData, CSTimerSolve } from "./components/Settings";
 
 export interface AppSettings {
   inspectionEnabled: boolean;
   moXAo5Value: number;
   trainingModeEnabled: boolean;
   splitPhases: SplitPhaseDefinition[];
+  lastPuzzleId?: PuzzleId;
+  hideTimeDuringSolve: boolean;
+  showMilliseconds: boolean;
+  holdToStart: boolean;
+  confirmBeforeDelete: boolean;
+  soundEnabled: boolean;
+  timerTrigger: "spacebar" | "any" | "stackmat";
+  freezeTime: number;
 }
 
 export interface AppState {
@@ -80,7 +86,12 @@ export interface AppContextValue {
   addSplitCapture: (capture: SplitCapture) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
   setSplitPhases: (phases: SplitPhaseDefinition[]) => void;
-  importCSTimerData: (data: CSTimerImportData) => void;
+  importCSTimerData: (data: CSTimerImportData) => {
+    imported: number;
+    dnfs: number;
+    plus2: number;
+    puzzleId: PuzzleId;
+  };
 }
 
 const WCA_EVENTS: WcaEventId[] = [
@@ -102,6 +113,13 @@ const DEFAULT_SETTINGS: AppSettings = {
   moXAo5Value: 12,
   trainingModeEnabled: false,
   splitPhases: [],
+  hideTimeDuringSolve: false,
+  showMilliseconds: false,
+  holdToStart: true,
+  confirmBeforeDelete: true,
+  soundEnabled: false,
+  timerTrigger: "spacebar",
+  freezeTime: 300,
 };
 
 const INITIAL_STATE: AppState = {
@@ -172,19 +190,35 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "INIT": {
       const { sessions, solves, splits } = action.payload;
+      const persistedSettings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        ...(action.payload.settings ?? {}),
+      };
+      const activePuzzleId =
+        action.payload.activePuzzleId ??
+        persistedSettings.lastPuzzleId ??
+        state.activePuzzleId;
+
       let activeSessions = sessions;
       let activeSessionId = state.activeSessionId;
 
       if (sessions.length === 0) {
-        const defaultSession = createDefaultSession("333");
+        const defaultSession = createDefaultSession(activePuzzleId);
         activeSessions = [defaultSession];
         activeSessionId = defaultSession.id;
       } else {
-        const firstSession = sessions[0];
-        activeSessionId = firstSession ? firstSession.id : null;
+        const sessionForPuzzle = sessions.find(
+          (s) => s.puzzleId === activePuzzleId,
+        );
+        if (sessionForPuzzle) {
+          activeSessionId = sessionForPuzzle.id;
+        } else {
+          const firstSession = sessions[0];
+          activeSessionId = firstSession ? firstSession.id : null;
+        }
       }
 
-      const scramble = generateScramble({ puzzleId: state.activePuzzleId });
+      const scramble = generateScramble({ puzzleId: activePuzzleId });
 
       return {
         ...state,
@@ -193,6 +227,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         solves,
         splits,
         activeSessionId,
+        activePuzzleId,
+        settings: persistedSettings,
         currentScramble: scramble,
       };
     }
@@ -211,6 +247,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       }
 
       const scramble = generateScramble({ puzzleId });
+      const settings = { ...state.settings, lastPuzzleId: puzzleId };
 
       return {
         ...state,
@@ -218,6 +255,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         activePuzzleId: puzzleId,
         activeSessionId: session.id,
         currentScramble: scramble,
+        settings,
       };
     }
 
@@ -311,6 +349,8 @@ export function AppProvider({ children }: AppProviderProps) {
             sessions: [],
             solves: [],
             splits: [],
+            settings: DEFAULT_SETTINGS,
+            activePuzzleId: INITIAL_STATE.activePuzzleId,
           },
         });
       });
@@ -325,13 +365,22 @@ export function AppProvider({ children }: AppProviderProps) {
         sessions: state.sessions,
         solves: state.solves,
         splits: state.splits,
+        settings: state.settings,
+        activePuzzleId: state.activePuzzleId,
       }).catch((err) => {
         console.error("Failed to save data:", err);
       });
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [state.initialized, state.sessions, state.solves, state.splits]);
+  }, [
+    state.initialized,
+    state.sessions,
+    state.solves,
+    state.splits,
+    state.settings,
+    state.activePuzzleId,
+  ]);
 
   const activeSolves = useMemo(() => {
     if (!state.activeSessionId) return [];
@@ -399,7 +448,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const importCSTimerData = useCallback(
     (data: CSTimerImportData) => {
-      const puzzleId = mapCSTimerPuzzle(data.puzzle);
+      const puzzleId = data.targetPuzzleId ?? mapCSTimerPuzzle(data.puzzle);
       let session = state.sessions.find((s) => s.puzzleId === puzzleId);
 
       if (!session) {
@@ -407,55 +456,72 @@ export function AppProvider({ children }: AppProviderProps) {
         dispatch({ type: "ADD_SESSION", payload: session });
       }
 
-      const newSolves: Solve[] = data.solves.map(
-        (csSolve: CSTimerSolve, index: number) => {
-          let penalty: Penalty = Penalty.None;
-          if (csSolve.penalty === "+2") {
-            penalty = Penalty.Plus2;
-          } else if (csSolve.penalty === "DNF") {
-            penalty = Penalty.DNF;
-          }
+      const newSolves: Solve[] = [];
+      let imported = 0;
+      let dnfs = 0;
+      let plus2 = 0;
 
-          let finalDurationMs: number | null = csSolve.time;
-          if (penalty === Penalty.DNF) {
-            finalDurationMs = null;
-          } else if (penalty === Penalty.Plus2) {
-            finalDurationMs = csSolve.time + 2000;
-          }
+      data.solves.forEach((csSolve: CSTimerSolveImport, index: number) => {
+        const baseTime = csSolve.time;
+        if (!Number.isFinite(baseTime) || baseTime <= 0) return;
 
-          const timing: TimingResult = {
-            startTs: 0,
-            endTs: csSolve.time,
-            inspectionDurationMs: 0,
-            rawDurationMs: csSolve.time,
-            penalty,
-            finalDurationMs,
-          };
+        let penalty: Penalty = Penalty.None;
+        const penaltyCode =
+          typeof csSolve.penalty === "string"
+            ? csSolve.penalty.toUpperCase()
+            : "NONE";
+        if (penaltyCode === "+2") {
+          penalty = Penalty.Plus2;
+        } else if (penaltyCode === "DNF") {
+          penalty = Penalty.DNF;
+        }
 
-          const scramble: Scramble = {
-            puzzleId,
-            notation: csSolve.scramble || `[Imported solve ${index + 1}]`,
-          };
+        let finalDurationMs: number | null = baseTime;
+        if (penalty === Penalty.DNF) {
+          dnfs += 1;
+          finalDurationMs = null;
+        } else if (penalty === Penalty.Plus2) {
+          plus2 += 1;
+          finalDurationMs = baseTime + 2000;
+        }
 
-          const createdAt = csSolve.date || new Date().toISOString();
+        const timing: TimingResult = {
+          startTs: 0,
+          endTs: baseTime,
+          inspectionDurationMs: 0,
+          rawDurationMs: baseTime,
+          penalty,
+          finalDurationMs,
+        };
 
-          return {
-            id: generateId(),
-            sessionId: session!.id,
-            puzzleId,
-            scramble,
-            timing,
-            createdAt,
-          };
-        },
-      );
+        const scramble: Scramble = {
+          puzzleId,
+          notation: csSolve.scramble || `[Imported solve ${index + 1}]`,
+        };
 
-      newSolves.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      dispatch({ type: "ADD_SOLVES_BATCH", payload: newSolves });
+        const createdAt = csSolve.date || new Date().toISOString();
 
-      if (state.activePuzzleId !== puzzleId) {
-        dispatch({ type: "SET_ACTIVE_PUZZLE", payload: puzzleId });
+        newSolves.push({
+          id: generateId(),
+          sessionId: session!.id,
+          puzzleId,
+          scramble,
+          timing,
+          createdAt,
+        });
+        imported += 1;
+      });
+
+      if (newSolves.length > 0) {
+        newSolves.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        dispatch({ type: "ADD_SOLVES_BATCH", payload: newSolves });
+
+        if (state.activePuzzleId !== puzzleId) {
+          dispatch({ type: "SET_ACTIVE_PUZZLE", payload: puzzleId });
+        }
       }
+
+      return { imported, dnfs, plus2, puzzleId };
     },
     [state.sessions, state.activePuzzleId],
   );

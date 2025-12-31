@@ -1,7 +1,3 @@
-/**
- * SplitBreakdown: Post-solve breakdown of split/phase timings.
- */
-
 import React, { useMemo } from "react";
 import { DurationMs, SplitCapture, SplitPhaseDefinition } from "../../types";
 import { computePhaseDurations } from "../../splits";
@@ -10,17 +6,14 @@ export interface SplitBreakdownProps {
   phases: SplitPhaseDefinition[];
   capture: SplitCapture | null;
   totalDurationMs: DurationMs | null;
-  /** Optional historical averages per phase for comparison */
   phaseAverages?: Record<string, DurationMs>;
 }
 
 function formatTime(ms: DurationMs | null): string {
   if (ms === null || ms < 0) return "—";
-
   const totalSeconds = Math.floor(ms / 1000);
   const seconds = totalSeconds % 60;
   const centis = Math.floor((ms % 1000) / 10);
-
   return `${seconds}.${centis.toString().padStart(2, "0")}`;
 }
 
@@ -32,9 +25,9 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    padding: "var(--space-3)",
+    padding: "8px",
     backgroundColor: "var(--color-surface)",
-    borderRadius: "var(--border-radius-md)",
+    borderRadius: "4px",
     border: "1px solid var(--color-border)",
   } as React.CSSProperties,
 
@@ -42,11 +35,11 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "var(--space-2)",
+    marginBottom: "4px",
   } as React.CSSProperties,
 
   headerTitle: {
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: 600,
     color: "var(--color-text-muted)",
     textTransform: "uppercase",
@@ -55,7 +48,7 @@ const styles = {
 
   headerCount: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     color: "var(--color-text-muted)",
     fontVariantNumeric: "tabular-nums",
     fontWeight: 500,
@@ -64,24 +57,24 @@ const styles = {
   phaseRow: {
     display: "flex",
     alignItems: "center",
-    padding: "var(--space-1) 0",
+    padding: "2px 0",
     borderBottom: "1px solid var(--color-border-subtle)",
   } as React.CSSProperties,
 
   phaseName: {
     flex: 1,
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 500,
     color: "var(--color-text-primary)",
   } as React.CSSProperties,
 
   phaseTime: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
+    fontSize: "11px",
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-primary)",
-    minWidth: "42px",
+    minWidth: "38px",
     textAlign: "right",
   } as React.CSSProperties,
 
@@ -91,36 +84,36 @@ const styles = {
 
   phasePercent: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-muted)",
-    minWidth: "28px",
+    minWidth: "24px",
     textAlign: "right",
-    marginLeft: "var(--space-1)",
+    marginLeft: "4px",
   } as React.CSSProperties,
 
   progressContainer: {
-    width: "40px",
-    height: "3px",
+    width: "32px",
+    height: "2px",
     backgroundColor: "var(--color-border)",
-    borderRadius: "2px",
-    marginLeft: "var(--space-2)",
+    borderRadius: "1px",
+    marginLeft: "6px",
     overflow: "hidden",
   } as React.CSSProperties,
 
   progressBar: {
     height: "100%",
     backgroundColor: "var(--color-ready)",
-    borderRadius: "2px",
-    transition: "width var(--transition-normal)",
+    borderRadius: "1px",
+    transition: "width 80ms ease-out",
   } as React.CSSProperties,
 
   deltaContainer: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
-    minWidth: "36px",
+    fontSize: "9px",
+    minWidth: "32px",
     textAlign: "right",
-    marginLeft: "var(--space-1)",
+    marginLeft: "4px",
   } as React.CSSProperties,
 
   deltaPositive: {
@@ -135,19 +128,19 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "var(--space-1) 0",
-    marginTop: "var(--space-1)",
+    padding: "2px 0",
+    marginTop: "2px",
     borderTop: "1px solid var(--color-border-subtle)",
   } as React.CSSProperties,
 
   summaryLabel: {
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-secondary)",
   } as React.CSSProperties,
 
   summaryValue: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
+    fontSize: "11px",
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-primary)",
@@ -171,7 +164,6 @@ function PhaseBreakdownRow({
   percentage,
   average,
 }: PhaseBreakdownRowProps) {
-  // Calculate delta from average
   const delta = useMemo(() => {
     if (duration === null || average === undefined) return null;
     return duration - average;
@@ -180,7 +172,6 @@ function PhaseBreakdownRow({
   return (
     <div style={styles.phaseRow}>
       <span style={styles.phaseName}>{name}</span>
-
       <span
         style={{
           ...styles.phaseTime,
@@ -189,11 +180,9 @@ function PhaseBreakdownRow({
       >
         {formatTime(duration)}
       </span>
-
       <span style={styles.phasePercent as React.CSSProperties}>
         {percentage !== null ? formatPercent(percentage) : "—"}
       </span>
-
       <div style={styles.progressContainer}>
         <div
           style={{
@@ -202,7 +191,6 @@ function PhaseBreakdownRow({
           }}
         />
       </div>
-
       {average !== undefined && (
         <span
           style={
@@ -228,13 +216,11 @@ export function SplitBreakdown({
   totalDurationMs,
   phaseAverages,
 }: SplitBreakdownProps) {
-  // Sort phases by order
   const sortedPhases = useMemo(
     () => [...phases].sort((a, b) => a.order - b.order),
     [phases],
   );
 
-  // Compute phase durations
   const phaseDurations = useMemo(() => {
     if (!capture) return {};
     return computePhaseDurations({
@@ -244,10 +230,8 @@ export function SplitBreakdown({
     });
   }, [phases, capture, totalDurationMs]);
 
-  // Calculate percentages
   const phasePercentages = useMemo(() => {
     if (!totalDurationMs || totalDurationMs <= 0) return {};
-
     const percentages: Record<string, number> = {};
     for (const [phase, duration] of Object.entries(phaseDurations)) {
       if (duration !== null) {
@@ -257,7 +241,6 @@ export function SplitBreakdown({
     return percentages;
   }, [phaseDurations, totalDurationMs]);
 
-  // Calculate total tracked time
   const totalTrackedMs = useMemo(() => {
     return Object.values(phaseDurations).reduce<number>(
       (sum, d) => sum + (d ?? 0),
@@ -265,32 +248,26 @@ export function SplitBreakdown({
     );
   }, [phaseDurations]);
 
-  // Don't render if no phases or no capture
   if (sortedPhases.length === 0 || !capture || capture.phases.length === 0) {
     return null;
   }
 
   const untrackedMs =
     totalDurationMs != null ? totalDurationMs - totalTrackedMs : 0;
-  const hasUntracked = untrackedMs > 100; // >100ms untracked
+  const hasUntracked = untrackedMs > 100;
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
-        <span style={styles.headerTitle as React.CSSProperties}>
-          Split Breakdown
-        </span>
+        <span style={styles.headerTitle as React.CSSProperties}>Splits</span>
         <span style={styles.headerCount}>
-          {capture.phases.length}/{sortedPhases.length} phases
+          {capture.phases.length}/{sortedPhases.length}
         </span>
       </div>
 
-      {/* Phase rows */}
       {sortedPhases.map((phase) => {
         const duration = phaseDurations[phase.name] ?? null;
         const percentage = phasePercentages[phase.name] ?? null;
-
         return (
           <PhaseBreakdownRow
             key={phase.name}
@@ -302,7 +279,6 @@ export function SplitBreakdown({
         );
       })}
 
-      {/* Untracked time (if significant) */}
       {hasUntracked && (
         <div style={styles.summaryRow}>
           <span style={styles.summaryLabel}>Untracked</span>
@@ -312,7 +288,6 @@ export function SplitBreakdown({
         </div>
       )}
 
-      {/* Total solve time */}
       <div style={styles.summaryRow}>
         <span style={styles.summaryLabel}>Total</span>
         <span style={styles.summaryValue}>{formatTime(totalDurationMs)}</span>

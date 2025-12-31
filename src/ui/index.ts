@@ -1,13 +1,10 @@
-// Barrel exports for UI components
 export { App } from "./App";
 export { AppProvider, useAppContext, WCA_EVENTS } from "./AppContext";
 export type { AppContextValue, AppSettings, AppState } from "./AppContext";
 
-// Hooks
 export { useTimer } from "./hooks/useTimer";
 export type { UseTimerOptions, UseTimerReturn } from "./hooks/useTimer";
 
-// Components
 export { TimerDisplay } from "./components/TimerDisplay";
 export type { TimerDisplayProps } from "./components/TimerDisplay";
 
@@ -30,8 +27,3 @@ export { SplitBreakdown } from "./components/SplitBreakdown";
 export type { SplitBreakdownProps } from "./components/SplitBreakdown";
 
 export { Settings } from "./components/Settings";
-export type {
-  SettingsProps,
-  CSTimerImportData,
-  CSTimerSolve,
-} from "./components/Settings";

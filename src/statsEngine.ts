@@ -1,7 +1,3 @@
-/**
- * Statistics engine for KubeTimr with WCA-style rolling averages.
- */
-
 import {
   DurationMs,
   PersonalBest,
@@ -248,7 +244,6 @@ export function computeSessionStats(
       : undefined,
   };
 
-  /* PB detection */
   const personalBests: PersonalBest[] = [];
   if (bestMs != null) {
     const bestIndex = durations.findIndex((d) => d === bestMs);

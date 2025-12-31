@@ -10,36 +10,22 @@
             name="description"
             content="KubeTimr — A keyboard-first, offline-first cube timer for serious speedcubers. Cleaner than CSTimer, focused on precision and flow."
         />
-        <meta name="theme-color" content="#0a0a0b" />
+        <meta name="theme-color" content="#000000" />
         <meta name="color-scheme" content="dark" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <link rel="icon" type="image/png" href="/src/public/logo.png" />
+        <link rel="apple-touch-icon" href="/src/public/logo.png" />
         <title>KubeTimr</title>
 
-        <!-- Preconnect for faster font loading -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-        <!--
-            FONT LOADING STRATEGY:
-            - Inter: UI text (400, 500, 600 weights)
-            - JetBrains Mono: Numbers and scrambles (500, 600, 700 weights)
-            - display=swap for fast initial render
-            - Subset to latin for smaller payload
-        -->
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap"
             rel="stylesheet"
         />
 
         <style>
-            /**
-             * CRITICAL CSS - Inlined for instant first paint
-             *
-             * This ensures the app appears immediately with correct
-             * colors and fonts before the main CSS bundle loads.
-             */
-
             *,
             *::before,
             *::after {
@@ -60,7 +46,6 @@
                 -moz-osx-font-smoothing: grayscale;
                 text-rendering: optimizeLegibility;
                 -webkit-text-size-adjust: 100%;
-                /* Enable tabular numerals globally */
                 font-variant-numeric: tabular-nums;
                 font-feature-settings:
                     "tnum" 1,
@@ -71,33 +56,34 @@
             body,
             #root {
                 height: 100%;
+                width: 100%;
                 overflow: hidden;
             }
 
             body {
-                background-color: #0a0a0b;
-                color: #e2e4e8;
+                background-color: #000000;
+                color: #e8eaed;
+                overscroll-behavior: none;
             }
 
-            /* Loading state - matches app design */
             .loading {
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 height: 100%;
-                font-size: 0.9375rem;
+                width: 100%;
+                font-size: 0.8125rem;
                 font-weight: 500;
-                color: rgba(255, 255, 255, 0.25);
+                color: rgba(255, 255, 255, 0.15);
                 font-family:
                     "Inter",
                     system-ui,
                     -apple-system,
                     sans-serif;
-                letter-spacing: 0.06em;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
             }
 
-            /* Focus visible for keyboard users */
             :focus-visible {
                 outline: 2px solid #60a5fa;
                 outline-offset: 2px;
@@ -107,16 +93,14 @@
                 outline: none;
             }
 
-            /* Selection */
             ::selection {
                 background-color: rgba(96, 165, 250, 0.2);
-                color: #e2e4e8;
+                color: #e8eaed;
             }
 
-            /* Scrollbar (Webkit) - minimal */
             ::-webkit-scrollbar {
-                width: 5px;
-                height: 5px;
+                width: 3px;
+                height: 3px;
             }
 
             ::-webkit-scrollbar-track {
@@ -124,38 +108,31 @@
             }
 
             ::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.12);
-                border-radius: 3px;
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 2px;
             }
 
             ::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.12);
             }
 
-            /* Firefox scrollbar */
             * {
                 scrollbar-width: thin;
-                scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+                scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
             }
 
-            /* Disable text selection on interactive elements */
             .no-select {
                 user-select: none;
                 -webkit-user-select: none;
             }
 
-            /* Prevent overscroll bounce on iOS/macOS */
-            body {
-                overscroll-behavior: none;
-            }
-
-            /* Ensure fullscreen works correctly */
             :fullscreen {
-                background-color: #0a0a0b;
+                background-color: #000000;
             }
 
             :fullscreen #root {
                 height: 100%;
+                width: 100%;
             }
         </style>
     </head>

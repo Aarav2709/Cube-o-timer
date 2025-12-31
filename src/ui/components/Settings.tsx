@@ -1,85 +1,86 @@
-/**
- * Settings panel with inspection toggle, training mode, and CSTimer import.
- * Supports both JSON and .txt CSTimer export formats.
- */
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { CSTimerImportData, PuzzleId, WcaEventId } from "../../types";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-
-export interface SettingsProps {
+interface SettingsProps {
   inspectionEnabled: boolean;
   onInspectionChange: (enabled: boolean) => void;
   trainingModeEnabled: boolean;
   onTrainingModeChange: (enabled: boolean) => void;
-  onImportCSTimer?: (data: CSTimerImportData) => void;
+  hideTimeDuringSolve: boolean;
+  onHideTimeDuringSolveChange: (enabled: boolean) => void;
+  showMilliseconds: boolean;
+  onShowMillisecondsChange: (enabled: boolean) => void;
+  onImportCSTimer?: (data: CSTimerImportData) => {
+    imported: number;
+    dnfs: number;
+    plus2: number;
+    puzzleId: PuzzleId;
+  };
   disabled?: boolean;
-}
-
-export interface CSTimerSolve {
-  time: number;
-  penalty: "none" | "+2" | "DNF";
-  scramble?: string;
-  date?: string;
-}
-
-export interface CSTimerImportData {
-  solves: CSTimerSolve[];
-  puzzle?: string;
 }
 
 const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
+    gap: "2px",
   } as React.CSSProperties,
 
-  header: {
-    fontSize: "10px",
+  sectionHeader: {
+    fontSize: "9px",
     fontWeight: 600,
     color: "var(--color-text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    marginBottom: "var(--space-2)",
+    marginTop: "10px",
+    marginBottom: "4px",
+    paddingLeft: "2px",
+  } as React.CSSProperties,
+
+  firstSectionHeader: {
+    marginTop: "0",
   } as React.CSSProperties,
 
   toggleRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "var(--space-2) 0",
-    borderBottom: "1px solid var(--color-border-subtle)",
+    padding: "5px 4px",
+    borderRadius: "3px",
+    transition: "background-color 40ms ease-out",
   } as React.CSSProperties,
 
-  toggleRowLast: {
-    borderBottom: "none",
+  toggleRowHover: {
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
   } as React.CSSProperties,
 
   labelContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: "2px",
+    gap: "1px",
     flex: 1,
-    marginRight: "var(--space-2)",
+    marginRight: "8px",
   } as React.CSSProperties,
 
   label: {
     display: "flex",
     alignItems: "center",
-    gap: "var(--space-1)",
-    fontSize: "var(--text-sm)",
+    gap: "6px",
+    fontSize: "11px",
     fontWeight: 500,
     color: "var(--color-text-primary)",
   } as React.CSSProperties,
 
   description: {
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-muted)",
-    lineHeight: 1.35,
+    lineHeight: 1.3,
   } as React.CSSProperties,
 
   toggleContainer: {
     position: "relative",
-    width: "36px",
-    height: "20px",
+    width: "28px",
+    height: "16px",
     flexShrink: 0,
   } as React.CSSProperties,
 
@@ -103,8 +104,8 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: "10px",
-    transition: "background-color var(--transition-normal)",
+    borderRadius: "8px",
+    transition: "background-color 80ms ease-out",
   } as React.CSSProperties,
 
   toggleTrackOff: {
@@ -112,22 +113,21 @@ const styles = {
   } as React.CSSProperties,
 
   toggleTrackOn: {
-    backgroundColor: "rgba(74, 222, 128, 0.3)",
+    backgroundColor: "rgba(74, 222, 128, 0.25)",
   } as React.CSSProperties,
 
   toggleTrackDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   } as React.CSSProperties,
 
   toggleThumb: {
     position: "absolute",
     top: "2px",
-    width: "16px",
-    height: "16px",
+    width: "12px",
+    height: "12px",
     borderRadius: "50%",
-    transition:
-      "left var(--transition-normal), background-color var(--transition-normal)",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.2)",
+    transition: "left 80ms ease-out, background-color 80ms ease-out",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.15)",
   } as React.CSSProperties,
 
   toggleThumbOff: {
@@ -136,402 +136,584 @@ const styles = {
   } as React.CSSProperties,
 
   toggleThumbOn: {
-    left: "18px",
+    left: "14px",
     backgroundColor: "var(--color-ready)",
   } as React.CSSProperties,
 
+  kbd: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "14px",
+    padding: "1px 4px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "9px",
+    fontWeight: 500,
+    lineHeight: 1.2,
+    color: "var(--color-text-muted)",
+    backgroundColor: "var(--color-surface-raised)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "2px",
+  } as React.CSSProperties,
+
+  selectRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "5px 4px",
+    borderRadius: "3px",
+  } as React.CSSProperties,
+
+  selectLabel: {
+    fontSize: "11px",
+    fontWeight: 500,
+    color: "var(--color-text-primary)",
+  } as React.CSSProperties,
+
+  select: {
+    padding: "3px 20px 3px 6px",
+    fontSize: "10px",
+    fontFamily: "var(--font-ui)",
+    fontWeight: 500,
+    backgroundColor: "var(--color-surface-raised)",
+    color: "var(--color-text-primary)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "3px",
+    cursor: "pointer",
+    minWidth: "80px",
+    appearance: "none",
+    backgroundImage:
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E\")",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 5px center",
+  } as React.CSSProperties,
+
+  segmentedControl: {
+    display: "flex",
+    backgroundColor: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "4px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  segmentButton: {
+    flex: 1,
+    padding: "4px 8px",
+    fontSize: "9px",
+    fontFamily: "var(--font-mono)",
+    fontWeight: 500,
+    color: "var(--color-text-muted)",
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    transition: "all 40ms ease-out",
+    borderRight: "1px solid var(--color-border)",
+  } as React.CSSProperties,
+
+  segmentButtonLast: {
+    borderRight: "none",
+  } as React.CSSProperties,
+
+  segmentButtonActive: {
+    backgroundColor: "rgba(96, 165, 250, 0.12)",
+    color: "var(--color-focus)",
+  } as React.CSSProperties,
+
+  divider: {
+    height: "1px",
+    backgroundColor: "var(--color-border-subtle)",
+    margin: "8px 0",
+  } as React.CSSProperties,
+
   importSection: {
-    marginTop: "var(--space-3)",
-    paddingTop: "var(--space-2)",
+    marginTop: "8px",
+    paddingTop: "8px",
     borderTop: "1px solid var(--color-border-subtle)",
   } as React.CSSProperties,
 
-  importLabel: {
-    fontSize: "10px",
-    fontWeight: 600,
-    color: "var(--color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    marginBottom: "var(--space-2)",
-  } as React.CSSProperties,
-
   importZone: {
-    padding: "var(--space-3)",
-    border: "1px dashed var(--color-border)",
-    borderRadius: "var(--border-radius-md)",
-    backgroundColor: "var(--color-surface)",
+    padding: "10px 8px",
+    borderWidth: "1px",
+    borderStyle: "dashed",
+    borderColor: "var(--color-border)",
+    borderRadius: "4px",
+    backgroundColor: "transparent",
     textAlign: "center",
     cursor: "pointer",
-    transition: "all var(--transition-fast)",
+    transition: "all 60ms ease-out",
   } as React.CSSProperties,
 
   importZoneHover: {
     borderColor: "var(--color-text-muted)",
-    backgroundColor: "var(--color-surface-raised)",
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
   } as React.CSSProperties,
 
   importZoneActive: {
     borderColor: "var(--color-focus)",
-    backgroundColor: "rgba(96, 165, 250, 0.05)",
+    backgroundColor: "rgba(96, 165, 250, 0.04)",
+    borderStyle: "solid",
   } as React.CSSProperties,
 
   importZoneDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
     cursor: "not-allowed",
   } as React.CSSProperties,
 
   importText: {
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     color: "var(--color-text-secondary)",
     marginBottom: "2px",
   } as React.CSSProperties,
 
   importHint: {
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-muted)",
   } as React.CSSProperties,
 
+  importFeedback: {
+    marginTop: "6px",
+    padding: "6px 8px",
+    borderRadius: "3px",
+    fontSize: "10px",
+  } as React.CSSProperties,
+
   importSuccess: {
-    fontSize: "var(--text-xs)",
     color: "var(--color-ready)",
-    marginTop: "var(--space-2)",
+    backgroundColor: "rgba(74, 222, 128, 0.08)",
+    border: "1px solid rgba(74, 222, 128, 0.2)",
   } as React.CSSProperties,
 
   importError: {
-    fontSize: "var(--text-xs)",
     color: "var(--color-error)",
-    marginTop: "var(--space-2)",
+    backgroundColor: "rgba(248, 113, 113, 0.08)",
+    border: "1px solid rgba(248, 113, 113, 0.2)",
+  } as React.CSSProperties,
+
+  importDetails: {
+    marginTop: "2px",
+    fontSize: "9px",
+    color: "var(--color-text-muted)",
   } as React.CSSProperties,
 
   hiddenInput: {
     display: "none",
   } as React.CSSProperties,
+
+  modalBackdrop: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    zIndex: 1000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  } as React.CSSProperties,
+
+  modal: {
+    backgroundColor: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "8px",
+    padding: "20px",
+    minWidth: "280px",
+    maxWidth: "340px",
+    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)",
+  } as React.CSSProperties,
+
+  modalTitle: {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "var(--color-text-primary)",
+    marginBottom: "4px",
+  } as React.CSSProperties,
+
+  modalSubtitle: {
+    fontSize: "11px",
+    color: "var(--color-text-muted)",
+    marginBottom: "16px",
+  } as React.CSSProperties,
+
+  puzzleGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "6px",
+    marginBottom: "16px",
+  } as React.CSSProperties,
+
+  puzzleButton: {
+    padding: "10px 8px",
+    fontSize: "11px",
+    fontWeight: 500,
+    color: "var(--color-text-secondary)",
+    backgroundColor: "var(--color-surface-raised)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "4px",
+    cursor: "pointer",
+    transition: "all 40ms ease-out",
+    textAlign: "center",
+  } as React.CSSProperties,
+
+  puzzleButtonHover: {
+    borderColor: "var(--color-text-muted)",
+    color: "var(--color-text-primary)",
+  } as React.CSSProperties,
+
+  puzzleButtonSelected: {
+    borderColor: "var(--color-focus)",
+    backgroundColor: "rgba(96, 165, 250, 0.1)",
+    color: "var(--color-focus)",
+  } as React.CSSProperties,
+
+  modalActions: {
+    display: "flex",
+    gap: "8px",
+    justifyContent: "flex-end",
+  } as React.CSSProperties,
+
+  modalButton: {
+    padding: "7px 14px",
+    fontSize: "11px",
+    fontWeight: 500,
+    borderRadius: "4px",
+    cursor: "pointer",
+    transition: "all 40ms ease-out",
+  } as React.CSSProperties,
+
+  modalButtonCancel: {
+    color: "var(--color-text-muted)",
+    backgroundColor: "transparent",
+    border: "1px solid var(--color-border)",
+  } as React.CSSProperties,
+
+  modalButtonConfirm: {
+    color: "var(--color-void)",
+    backgroundColor: "var(--color-focus)",
+    border: "1px solid var(--color-focus)",
+  } as React.CSSProperties,
+
+  fileInfo: {
+    padding: "8px",
+    backgroundColor: "var(--color-surface-raised)",
+    borderRadius: "4px",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+
+  fileName: {
+    fontSize: "11px",
+    fontWeight: 500,
+    color: "var(--color-text-primary)",
+    marginBottom: "2px",
+    wordBreak: "break-all",
+  } as React.CSSProperties,
+
+  fileSize: {
+    fontSize: "9px",
+    color: "var(--color-text-muted)",
+  } as React.CSSProperties,
 };
 
-interface CSTimerRawSolve {
-  time?: number | [number, number];
-  penalty?: number;
-  scramble?: string;
-  date?: number | string;
+const PUZZLE_OPTIONS: { id: WcaEventId; label: string }[] = [
+  { id: "333", label: "3×3" },
+  { id: "222", label: "2×2" },
+  { id: "444", label: "4×4" },
+  { id: "555", label: "5×5" },
+  { id: "666", label: "6×6" },
+  { id: "777", label: "7×7" },
+  { id: "pyram", label: "Pyra" },
+  { id: "skewb", label: "Skewb" },
+  { id: "sq1", label: "SQ-1" },
+  { id: "clock", label: "Clock" },
+  { id: "minx", label: "Mega" },
+];
+
+const PUZZLE_LABELS: Record<string, string> = Object.fromEntries(
+  PUZZLE_OPTIONS.map((p) => [p.id, p.label]),
+);
+
+function resolvePuzzleLabel(puzzleId: PuzzleId): string {
+  const normalized = puzzleId.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return PUZZLE_LABELS[normalized] || PUZZLE_LABELS[puzzleId] || puzzleId;
 }
 
-interface CSTimerExport {
-  [key: string]:
-    | CSTimerRawSolve[]
-    | {
-        times?: CSTimerRawSolve[];
-        name?: string;
-        opt?: { scrType?: string };
-      };
+interface ParseResult {
+  solves: {
+    time: number;
+    penalty: "none" | "+2" | "DNF";
+    scramble?: string;
+    date?: string;
+  }[];
+  detectedPuzzle?: string;
 }
 
-/**
- * Parse CSTimer JSON export format.
- */
-function parseCSTimerJSON(json: unknown): CSTimerImportData {
-  const solves: CSTimerSolve[] = [];
-  let puzzle: string | undefined;
-
-  if (!json || typeof json !== "object") {
-    throw new Error("Invalid CSTimer export format.");
+function detectPuzzleType(text: string): string | undefined {
+  const patterns: Record<string, RegExp> = {
+    "222": /2x2|2×2/i,
+    "333": /3x3|3×3/i,
+    "444": /4x4|4×4/i,
+    "555": /5x5|5×5/i,
+    "666": /6x6|6×6/i,
+    "777": /7x7|7×7/i,
+    pyram: /pyra|pyraminx/i,
+    skewb: /skewb/i,
+    sq1: /sq.?1|square/i,
+    clock: /clock/i,
+    minx: /mega|minx/i,
+  };
+  for (const [puzzle, regex] of Object.entries(patterns)) {
+    if (regex.test(text)) return puzzle;
   }
-
-  const data = json as CSTimerExport;
-
-  for (const key of Object.keys(data)) {
-    const session = data[key];
-    if (!session) continue;
-
-    let times: CSTimerRawSolve[] = [];
-    if (Array.isArray(session)) {
-      times = session;
-    } else if (typeof session === "object" && "times" in session) {
-      times = session.times || [];
-      if (session.opt?.scrType && !puzzle) {
-        puzzle = session.opt.scrType;
-      }
-    }
-
-    for (const rawSolve of times) {
-      if (!rawSolve) continue;
-
-      let timeMs: number;
-      let penaltyValue: number = 0;
-
-      if (Array.isArray(rawSolve)) {
-        penaltyValue = (rawSolve as number[])[0] || 0;
-        const timeValue = (rawSolve as number[])[1];
-        timeMs = typeof timeValue === "number" ? timeValue * 10 : 0;
-      } else if (typeof rawSolve === "object") {
-        if (Array.isArray(rawSolve.time)) {
-          penaltyValue = rawSolve.time[0] || 0;
-          timeMs = (rawSolve.time[1] || 0) * 10;
-        } else {
-          timeMs = typeof rawSolve.time === "number" ? rawSolve.time * 10 : 0;
-          penaltyValue = rawSolve.penalty || 0;
-        }
-      } else {
-        continue;
-      }
-
-      if (timeMs <= 0) continue;
-
-      let penalty: "none" | "+2" | "DNF" = "none";
-      if (penaltyValue === -1) {
-        penalty = "DNF";
-      } else if (penaltyValue === 2000 || penaltyValue === 2) {
-        penalty = "+2";
-      }
-
-      let scramble: string | undefined;
-      let date: string | undefined;
-
-      if (Array.isArray(rawSolve)) {
-        scramble =
-          typeof (rawSolve as unknown[])[2] === "string"
-            ? ((rawSolve as unknown[])[2] as string)
-            : undefined;
-        const rawDate = (rawSolve as unknown[])[3];
-        if (typeof rawDate === "number") {
-          date = new Date(rawDate).toISOString();
-        } else if (typeof rawDate === "string") {
-          date = rawDate;
-        }
-      } else if (typeof rawSolve === "object") {
-        scramble = rawSolve.scramble;
-        if (typeof rawSolve.date === "number") {
-          date = new Date(rawSolve.date).toISOString();
-        } else if (typeof rawSolve.date === "string") {
-          date = rawSolve.date;
-        }
-      }
-
-      solves.push({ time: timeMs, penalty, scramble, date });
-    }
-  }
-
-  if (solves.length === 0) {
-    throw new Error("No valid solves found in CSTimer export.");
-  }
-
-  return { solves, puzzle };
+  return undefined;
 }
 
-/**
- * Parse CSTimer .txt export format.
- * Format: "No.  Time  Penalty  Comment\n1.  12.34  OK  scramble..."
- * Or simpler: lines with times like "12.34" or "12.34+" or "DNF(12.34)"
- */
-function parseCSTimerTxt(text: string): CSTimerImportData {
-  const solves: CSTimerSolve[] = [];
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  // Try to detect puzzle type from header
-  let puzzle: string | undefined;
-  const headerMatch = text.match(/puzzle[:\s]+(\w+)/i);
-  if (headerMatch) {
-    puzzle = headerMatch[1];
-  }
-
-  // Regex patterns for different CSTimer .txt formats
-  const timePatterns = [
-    // Format: "1. 12.34  OK  R U R' U'..."
-    /^\d+\.\s+([\d:.]+)(\+?)(?:\s+(DNF|OK|\+2))?(?:\s+(.*))?$/i,
-    // Format: "DNF(12.34)" or "12.34+" or "12.34"
-    /^(DNF)?\(?([\d:.]+)\)?(\+)?$/i,
-    // Format: just time with optional penalty
-    /^([\d:.]+)(\+)?(?:\s+(DNF))?$/i,
-  ];
-
-  for (const line of lines) {
-    // Skip header lines
-    if (
-      line.toLowerCase().includes("time") &&
-      line.toLowerCase().includes("no")
-    ) {
-      continue;
-    }
-    if (line.startsWith("---") || line.startsWith("===")) {
-      continue;
-    }
-    if (
-      line.toLowerCase().includes("generated by") ||
-      line.toLowerCase().includes("cstimer")
-    ) {
-      continue;
-    }
-    if (line.toLowerCase().includes("session")) {
-      continue;
-    }
-    if (
-      line.toLowerCase().includes("average") ||
-      line.toLowerCase().includes("mean")
-    ) {
-      continue;
-    }
-    if (
-      line.toLowerCase().includes("best") ||
-      line.toLowerCase().includes("worst")
-    ) {
-      continue;
-    }
-
-    let timeMs: number | null = null;
-    let penalty: "none" | "+2" | "DNF" = "none";
-    let scramble: string | undefined;
-
-    for (const pattern of timePatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        let timeStr: string | undefined;
-
-        if (pattern === timePatterns[0]) {
-          // Format: "1. 12.34  OK  R U R' U'..."
-          timeStr = match[1];
-          if (match[2] === "+" || match[3]?.toUpperCase() === "+2") {
-            penalty = "+2";
-          } else if (match[3]?.toUpperCase() === "DNF") {
-            penalty = "DNF";
-          }
-          scramble = match[4]?.trim();
-        } else if (pattern === timePatterns[1]) {
-          // Format: "DNF(12.34)" or "12.34+"
-          if (match[1]?.toUpperCase() === "DNF") {
-            penalty = "DNF";
-          }
-          timeStr = match[2];
-          if (match[3] === "+") {
-            penalty = "+2";
-          }
-        } else {
-          // Format: "12.34+" or "12.34 DNF"
-          timeStr = match[1];
-          if (match[2] === "+") {
-            penalty = "+2";
-          }
-          if (match[3]?.toUpperCase() === "DNF") {
-            penalty = "DNF";
-          }
-        }
-
-        // Parse time string (supports "1:23.45" and "12.34")
-        if (timeStr) {
-          timeMs = parseTimeString(timeStr);
-          if (timeMs !== null) break;
-        }
-      }
-    }
-
-    // Try to extract time from anywhere in the line as last resort
-    if (timeMs === null) {
-      const anyTimeMatch = line.match(/([\d]+:)?(\d+)\.(\d{2})/);
-      if (anyTimeMatch && anyTimeMatch[2] && anyTimeMatch[3]) {
-        const minutes = anyTimeMatch[1] ? parseInt(anyTimeMatch[1]) : 0;
-        const seconds = parseInt(anyTimeMatch[2]);
-        const centis = parseInt(anyTimeMatch[3]);
-        timeMs = (minutes * 60 + seconds) * 1000 + centis * 10;
-
-        // Check for penalties in the line
-        if (line.toLowerCase().includes("dnf")) {
-          penalty = "DNF";
-        } else if (
-          line.includes("+") &&
-          !line.includes("R'") &&
-          !line.includes("U'")
-        ) {
-          penalty = "+2";
-        }
-      }
-    }
-
-    if (timeMs !== null && timeMs > 0) {
-      solves.push({ time: timeMs, penalty, scramble });
-    }
-  }
-
-  if (solves.length === 0) {
-    throw new Error("No valid solves found in CSTimer .txt export.");
-  }
-
-  return { solves, puzzle };
-}
-
-/**
- * Parse a time string like "12.34" or "1:23.45" into milliseconds.
- */
-function parseTimeString(timeStr: string): number | null {
-  if (!timeStr) return null;
-
-  // Handle minute:second format
-  const minSecMatch = timeStr.match(/^(\d+):(\d+)\.(\d+)$/);
-  if (minSecMatch && minSecMatch[1] && minSecMatch[2] && minSecMatch[3]) {
-    const minutes = parseInt(minSecMatch[1]);
-    const seconds = parseInt(minSecMatch[2]);
-    const fraction = minSecMatch[3];
+function parseTimeString(str: string): number | null {
+  const minSecMatch = str.match(/^(\d+):(\d+)\.?(\d*)$/);
+  if (minSecMatch) {
+    const minutes = parseInt(minSecMatch[1]!, 10);
+    const seconds = parseInt(minSecMatch[2]!, 10);
+    const fraction = minSecMatch[3] || "0";
     const centis =
-      fraction.length === 2
-        ? parseInt(fraction)
-        : parseInt(fraction.slice(0, 2));
-    return (minutes * 60 + seconds) * 1000 + centis * 10;
+      fraction.length === 3
+        ? parseInt(fraction, 10)
+        : fraction.length === 2
+          ? parseInt(fraction, 10) * 10
+          : fraction.length === 1
+            ? parseInt(fraction, 10) * 100
+            : 0;
+    return (minutes * 60 + seconds) * 1000 + centis;
   }
 
-  // Handle second.centis format
-  const secMatch = timeStr.match(/^(\d+)\.(\d+)$/);
-  if (secMatch && secMatch[1] && secMatch[2]) {
-    const seconds = parseInt(secMatch[1]);
-    const fraction = secMatch[2];
+  const secMatch = str.match(/^(\d+)\.(\d+)$/);
+  if (secMatch) {
+    const seconds = parseInt(secMatch[1]!, 10);
+    const fraction = secMatch[2]!;
     const centis =
-      fraction.length === 2
-        ? parseInt(fraction)
-        : parseInt(fraction.slice(0, 2));
-    return seconds * 1000 + centis * 10;
+      fraction.length === 3
+        ? parseInt(fraction, 10)
+        : fraction.length === 2
+          ? parseInt(fraction, 10) * 10
+          : fraction.length === 1
+            ? parseInt(fraction, 10) * 100
+            : 0;
+    return seconds * 1000 + centis;
+  }
+
+  const intMatch = str.match(/^(\d+)$/);
+  if (intMatch) {
+    return parseInt(intMatch[1]!, 10);
   }
 
   return null;
 }
 
-/**
- * Parse CSTimer export, detecting format automatically.
- */
-function parseCSTimerExport(content: string): CSTimerImportData {
-  const trimmed = content.trim();
+function parseCSTimerJson(text: string): ParseResult {
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return { solves: [], detectedPuzzle: undefined };
+  }
 
-  // Try JSON first
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try {
-      const json = JSON.parse(trimmed);
-      return parseCSTimerJSON(json);
-    } catch {
-      // Fall through to txt parsing
+  const solves: ParseResult["solves"] = [];
+  let puzzle: string | undefined;
+
+  const sessionEntries = Object.entries(data).filter(
+    ([key]) => key.startsWith("session") && !key.includes("data"),
+  );
+
+  for (const [, sessionValue] of sessionEntries) {
+    if (!Array.isArray(sessionValue)) continue;
+
+    for (const entry of sessionValue) {
+      if (!Array.isArray(entry) || entry.length < 1) continue;
+
+      const [timing, scrambleMaybe, , dateMaybe] = entry;
+      const timeBlock = Array.isArray(timing) ? timing : [0, timing];
+      const timeMs =
+        typeof timeBlock[1] === "number"
+          ? timeBlock[1]
+          : parseTimeString(String(timeBlock[1]));
+
+      if (!timeMs || timeMs <= 0) continue;
+
+      const status =
+        typeof timeBlock[0] === "number"
+          ? timeBlock[0]
+          : parseInt(String(timeBlock[0]), 10) || 0;
+
+      let penalty: "none" | "+2" | "DNF" = "none";
+      if (status === -1) {
+        penalty = "DNF";
+      } else if (status === 2000) {
+        penalty = "+2";
+      }
+
+      const scramble =
+        typeof scrambleMaybe === "string" ? scrambleMaybe : undefined;
+
+      let date: string | undefined;
+      if (typeof dateMaybe === "number") {
+        date = new Date(dateMaybe * 1000).toISOString();
+      } else if (typeof dateMaybe === "string") {
+        const parsed = Date.parse(dateMaybe);
+        if (!isNaN(parsed)) {
+          date = new Date(parsed).toISOString();
+        }
+      }
+
+      solves.push({ time: timeMs, penalty, scramble, date });
+
+      if (!puzzle && scramble) {
+        puzzle = detectPuzzleType(scramble);
+      }
     }
   }
 
-  // Try .txt format
+  return { solves, detectedPuzzle: puzzle };
+}
+
+function parseCSTimerData(text: string): ParseResult {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{")) {
+    const jsonResult = parseCSTimerJson(trimmed);
+    if (jsonResult.solves.length > 0) return jsonResult;
+  }
   return parseCSTimerTxt(trimmed);
+}
+
+function parseCSTimerTxt(text: string): ParseResult {
+  const solves: ParseResult["solves"] = [];
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const puzzle = detectPuzzleType(text);
+
+  const skipPatterns = [
+    /^generated/i,
+    /^solves\/total/i,
+    /^single/i,
+    /^mean/i,
+    /^avg/i,
+    /^best/i,
+    /^worst/i,
+    /^session/i,
+    /^-+$/,
+    /^statistics/i,
+    /^number of times/i,
+    /^\d+\/\d+$/,
+    /^average:/i,
+    /^standard deviation/i,
+    /^best time/i,
+    /^worst time/i,
+    /^current ao/i,
+    /^best ao/i,
+    /^session avg/i,
+  ];
+
+  for (const line of lines) {
+    const shouldSkip = skipPatterns.some((p) => p.test(line));
+    if (shouldSkip) continue;
+
+    let timeMs: number | null = null;
+    let penalty: "none" | "+2" | "DNF" = "none";
+    let scramble: string | undefined;
+
+    const dnfMatch = line.match(/^DNF\s*\(([^)]+)\)/i);
+    if (dnfMatch) {
+      timeMs = parseTimeString(dnfMatch[1]!.trim());
+      penalty = "DNF";
+    }
+
+    const numberedMatch = line.match(
+      /^\d+\.\s*(\d+[:.]\d+(?:\.\d+)?(?:\+)?|DNF\s*\([^)]+\))/i,
+    );
+    if (!timeMs && numberedMatch) {
+      let timeStr = numberedMatch[1]!.trim();
+      if (timeStr.endsWith("+")) {
+        penalty = "+2";
+        timeStr = timeStr.slice(0, -1);
+      }
+      if (timeStr.toUpperCase().startsWith("DNF")) {
+        const inner = timeStr.match(/\(([^)]+)\)/);
+        if (inner) {
+          timeMs = parseTimeString(inner[1]!.trim());
+          penalty = "DNF";
+        }
+      } else {
+        timeMs = parseTimeString(timeStr);
+      }
+
+      const rest = line.slice(numberedMatch[0].length).trim();
+      if (rest && !rest.match(/^[\d:.]+$/)) {
+        scramble = rest;
+      }
+    }
+
+    if (!timeMs) {
+      const simpleTimeMatch = line.match(
+        /^(\d+[:.]\d+(?:\.\d+)?(?:\+)?)\s*(.*)/,
+      );
+      if (simpleTimeMatch) {
+        let timeStr = simpleTimeMatch[1]!.trim();
+        const rest = simpleTimeMatch[2]?.trim();
+        if (timeStr.endsWith("+")) {
+          penalty = "+2";
+          timeStr = timeStr.slice(0, -1);
+        }
+        timeMs = parseTimeString(timeStr);
+        if (rest && !rest.match(/^[\d:.]+$/)) {
+          scramble = rest;
+        }
+      }
+    }
+
+    if (!timeMs) {
+      const anyTimeMatch = line.match(/(\d+):(\d+)\.(\d+)/);
+      if (anyTimeMatch) {
+        const minutes = parseInt(anyTimeMatch[1]!, 10);
+        const seconds = parseInt(anyTimeMatch[2]!, 10);
+        const fraction = anyTimeMatch[3]!;
+        const centis =
+          fraction.length === 3
+            ? parseInt(fraction, 10)
+            : fraction.length === 2
+              ? parseInt(fraction, 10) * 10
+              : parseInt(fraction, 10) * 100;
+        timeMs = (minutes * 60 + seconds) * 1000 + centis;
+      }
+    }
+
+    if (timeMs && timeMs > 0) {
+      solves.push({
+        time: timeMs,
+        penalty,
+        scramble,
+      });
+    }
+  }
+
+  return { solves, detectedPuzzle: puzzle ?? "333" };
 }
 
 interface ToggleRowProps {
   label: string;
   description?: string;
+  shortcut?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
-  shortcut?: string;
-  isLast?: boolean;
 }
 
 function ToggleRow({
   label,
   description,
+  shortcut,
   checked,
   onChange,
   disabled = false,
-  shortcut,
-  isLast = false,
 }: ToggleRowProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange(e.target.checked);
@@ -543,48 +725,166 @@ function ToggleRow({
     <div
       style={{
         ...styles.toggleRow,
-        ...(isLast ? styles.toggleRowLast : {}),
+        ...(isHovered && !disabled ? styles.toggleRowHover : {}),
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div style={styles.labelContainer as React.CSSProperties}>
         <span style={styles.label}>
           {label}
-          {shortcut && <span className="kbd">{shortcut}</span>}
+          {shortcut && <span style={styles.kbd}>{shortcut}</span>}
         </span>
-        {description && <span style={styles.description}>{description}</span>}
+        {description && (
+          <span style={styles.description as React.CSSProperties}>
+            {description}
+          </span>
+        )}
       </div>
-
       <div style={styles.toggleContainer as React.CSSProperties}>
         <input
           type="checkbox"
           checked={checked}
           onChange={handleChange}
           disabled={disabled}
-          style={
-            {
-              ...styles.toggleInput,
-              ...(disabled ? styles.toggleInputDisabled : {}),
-            } as React.CSSProperties
-          }
-          aria-label={label}
+          style={{
+            ...styles.toggleInput,
+            ...(disabled ? styles.toggleInputDisabled : {}),
+          }}
         />
         <div
-          style={
-            {
-              ...styles.toggleTrack,
-              ...(checked ? styles.toggleTrackOn : styles.toggleTrackOff),
-              ...(disabled ? styles.toggleTrackDisabled : {}),
-            } as React.CSSProperties
-          }
+          style={{
+            ...styles.toggleTrack,
+            ...(checked ? styles.toggleTrackOn : styles.toggleTrackOff),
+            ...(disabled ? styles.toggleTrackDisabled : {}),
+          }}
         />
         <div
-          style={
-            {
-              ...styles.toggleThumb,
-              ...(checked ? styles.toggleThumbOn : styles.toggleThumbOff),
-            } as React.CSSProperties
-          }
+          style={{
+            ...styles.toggleThumb,
+            ...(checked ? styles.toggleThumbOn : styles.toggleThumbOff),
+          }}
         />
+      </div>
+    </div>
+  );
+}
+
+interface ImportStatus {
+  type: "success" | "error";
+  message: string;
+  details?: string;
+}
+
+interface PendingImport {
+  file: File;
+  result: ParseResult;
+}
+
+interface PuzzlePickerModalProps {
+  pendingImport: PendingImport;
+  onConfirm: (puzzleId: WcaEventId) => void;
+  onCancel: () => void;
+}
+
+function PuzzlePickerModal({
+  pendingImport,
+  onConfirm,
+  onCancel,
+}: PuzzlePickerModalProps) {
+  const [selectedPuzzle, setSelectedPuzzle] = useState<WcaEventId>(
+    (pendingImport.result.detectedPuzzle as WcaEventId) || "333",
+  );
+  const [hoveredPuzzle, setHoveredPuzzle] = useState<WcaEventId | null>(null);
+
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        onCancel();
+      }
+    },
+    [onCancel],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel();
+      } else if (e.key === "Enter") {
+        onConfirm(selectedPuzzle);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel, onConfirm, selectedPuzzle]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div
+      style={styles.modalBackdrop as React.CSSProperties}
+      onClick={handleBackdropClick}
+    >
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalTitle}>Import Solves</div>
+        <div style={styles.modalSubtitle}>
+          {pendingImport.result.solves.length} solve
+          {pendingImport.result.solves.length !== 1 ? "s" : ""} found. Select
+          target puzzle:
+        </div>
+
+        <div style={styles.fileInfo}>
+          <div style={styles.fileName}>{pendingImport.file.name}</div>
+          <div style={styles.fileSize}>
+            {formatFileSize(pendingImport.file.size)}
+          </div>
+        </div>
+
+        <div style={styles.puzzleGrid}>
+          {PUZZLE_OPTIONS.map((puzzle) => (
+            <button
+              key={puzzle.id}
+              onClick={() => setSelectedPuzzle(puzzle.id)}
+              onMouseEnter={() => setHoveredPuzzle(puzzle.id)}
+              onMouseLeave={() => setHoveredPuzzle(null)}
+              style={{
+                ...styles.puzzleButton,
+                ...(selectedPuzzle === puzzle.id
+                  ? styles.puzzleButtonSelected
+                  : hoveredPuzzle === puzzle.id
+                    ? styles.puzzleButtonHover
+                    : {}),
+              }}
+            >
+              {puzzle.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.modalActions}>
+          <button
+            onClick={onCancel}
+            style={{
+              ...styles.modalButton,
+              ...styles.modalButtonCancel,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(selectedPuzzle)}
+            style={{
+              ...styles.modalButton,
+              ...styles.modalButtonConfirm,
+            }}
+          >
+            Import
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -595,55 +895,109 @@ export function Settings({
   onInspectionChange,
   trainingModeEnabled,
   onTrainingModeChange,
+  hideTimeDuringSolve,
+  onHideTimeDuringSolveChange,
+  showMilliseconds,
+  onShowMillisecondsChange,
   onImportCSTimer,
   disabled = false,
 }: SettingsProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [importStatus, setImportStatus] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+  const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(
+    null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (importStatus) {
-      const timeout = setTimeout(() => setImportStatus(null), 4000);
+      const timeout = setTimeout(() => setImportStatus(null), 3000);
       return () => clearTimeout(timeout);
     }
   }, [importStatus]);
 
-  const handleFileImport = useCallback(
-    async (file: File) => {
-      if (!onImportCSTimer) return;
+  const handleFileParse = useCallback(async (file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext !== "txt" && ext !== "json") {
+      setImportStatus({
+        type: "error",
+        message: "Unsupported file type",
+        details: "Use .txt or .json from csTimer",
+      });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const result = parseCSTimerData(text);
+
+      if (result.solves.length === 0) {
+        setImportStatus({
+          type: "error",
+          message: "No solves found",
+          details: "Check the file format",
+        });
+        return;
+      }
+
+      setPendingImport({ file, result });
+    } catch (err) {
+      setImportStatus({
+        type: "error",
+        message: "Failed to read file",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }, []);
+
+  const handleImportConfirm = useCallback(
+    (puzzleId: WcaEventId) => {
+      if (!pendingImport || !onImportCSTimer) return;
 
       try {
-        const text = await file.text();
-        const data = parseCSTimerExport(text);
-        onImportCSTimer(data);
+        const summary = onImportCSTimer({
+          solves: pendingImport.result.solves,
+          puzzle: pendingImport.result.detectedPuzzle ?? puzzleId,
+          targetPuzzleId: puzzleId,
+        });
+
+        const puzzleLabel = resolvePuzzleLabel(summary.puzzleId);
+        const importedCount = summary.imported;
+        const plus2Count = summary.plus2;
+        const dnfCount = summary.dnfs;
+
         setImportStatus({
           type: "success",
-          message: `Imported ${data.solves.length} solves.`,
+          message: `${importedCount} solve${importedCount !== 1 ? "s" : ""} imported`,
+          details: `${puzzleLabel}${plus2Count ? ` · ${plus2Count} +2` : ""}${dnfCount ? ` · ${dnfCount} DNF` : ""}`,
         });
       } catch (err) {
         setImportStatus({
           type: "error",
-          message: err instanceof Error ? err.message : "Import failed.",
+          message: "Import failed",
+          details: err instanceof Error ? err.message : "Unknown error",
         });
       }
+
+      setPendingImport(null);
     },
-    [onImportCSTimer],
+    [pendingImport, onImportCSTimer],
   );
+
+  const handleImportCancel = useCallback(() => {
+    setPendingImport(null);
+  }, []);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        handleFileImport(file);
+        handleFileParse(file);
       }
       e.target.value = "";
     },
-    [handleFileImport],
+    [handleFileParse],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -664,106 +1018,130 @@ export function Settings({
       e.stopPropagation();
       setIsDragOver(false);
 
-      const file = e.dataTransfer.files?.[0];
+      const file = e.dataTransfer.files[0];
       if (file) {
-        const ext = file.name.split(".").pop()?.toLowerCase();
-        if (ext === "json" || ext === "txt") {
-          handleFileImport(file);
-        } else {
-          setImportStatus({
-            type: "error",
-            message: "Please drop a .txt or .json file.",
-          });
-        }
+        handleFileParse(file);
       }
     },
-    [handleFileImport],
+    [handleFileParse],
   );
 
   const handleZoneClick = useCallback(() => {
-    if (!disabled && fileInputRef.current) {
-      fileInputRef.current.click();
+    if (!disabled) {
+      fileInputRef.current?.click();
     }
   }, [disabled]);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header as React.CSSProperties}>Settings</div>
+    <div style={styles.container as React.CSSProperties}>
+      <span
+        style={
+          {
+            ...styles.sectionHeader,
+            ...styles.firstSectionHeader,
+          } as React.CSSProperties
+        }
+      >
+        Timer
+      </span>
 
       <ToggleRow
         label="Inspection"
-        description="15s WCA inspection period."
+        shortcut="I"
+        description="15s WCA inspection"
         checked={inspectionEnabled}
         onChange={onInspectionChange}
         disabled={disabled}
-        shortcut="I"
+      />
+
+      <span style={styles.sectionHeader as React.CSSProperties}>Display</span>
+
+      <ToggleRow
+        label="Hide During Solve"
+        description="Hide time while running"
+        checked={hideTimeDuringSolve}
+        onChange={onHideTimeDuringSolveChange}
+        disabled={disabled}
       />
 
       <ToggleRow
+        label="Show Milliseconds"
+        description="Display 3 decimal places"
+        checked={showMilliseconds}
+        onChange={onShowMillisecondsChange}
+        disabled={disabled}
+      />
+
+      <span style={styles.sectionHeader as React.CSSProperties}>Training</span>
+
+      <ToggleRow
         label="Training Mode"
-        description="Track split times during solves."
+        shortcut="T"
+        description="Track split phases"
         checked={trainingModeEnabled}
         onChange={onTrainingModeChange}
         disabled={disabled}
-        shortcut="T"
-        isLast
       />
 
       {onImportCSTimer && (
         <div style={styles.importSection}>
-          <div style={styles.importLabel as React.CSSProperties}>Import</div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,.txt,application/json,text/plain"
-            onChange={handleFileChange}
-            style={styles.hiddenInput}
-            disabled={disabled}
-            aria-label="Import CSTimer data"
-          />
+          <span style={styles.sectionHeader as React.CSSProperties}>
+            Import
+          </span>
 
           <div
+            onClick={handleZoneClick}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             style={{
               ...styles.importZone,
               ...(isHovered && !disabled ? styles.importZoneHover : {}),
               ...(isDragOver ? styles.importZoneActive : {}),
               ...(disabled ? styles.importZoneDisabled : {}),
             }}
-            onClick={handleZoneClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            role="button"
-            tabIndex={disabled ? -1 : 0}
-            onKeyDown={(e) => {
-              if (e.code === "Enter" || e.code === "Space") {
-                e.preventDefault();
-                handleZoneClick();
-              }
-            }}
-            aria-label="Import CSTimer data"
           >
-            <div style={styles.importText}>Import CSTimer data</div>
-            <div style={styles.importHint}>
-              Drop .txt or .json file, or click to browse.
+            <div style={styles.importText as React.CSSProperties}>
+              Drop csTimer export
             </div>
+            <div style={styles.importHint}>.txt or .json</div>
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.json"
+            onChange={handleFileChange}
+            style={styles.hiddenInput}
+            disabled={disabled}
+          />
 
           {importStatus && (
             <div
-              style={
-                importStatus.type === "success"
+              style={{
+                ...styles.importFeedback,
+                ...(importStatus.type === "success"
                   ? styles.importSuccess
-                  : styles.importError
-              }
+                  : styles.importError),
+              }}
             >
               {importStatus.message}
+              {importStatus.details && (
+                <div style={styles.importDetails}>{importStatus.details}</div>
+              )}
             </div>
           )}
         </div>
+      )}
+
+      {pendingImport && (
+        <PuzzlePickerModal
+          pendingImport={pendingImport}
+          onConfirm={handleImportConfirm}
+          onCancel={handleImportCancel}
+        />
       )}
     </div>
   );

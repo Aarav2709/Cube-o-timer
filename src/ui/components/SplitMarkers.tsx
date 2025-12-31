@@ -1,7 +1,3 @@
-/**
- * SplitMarkers: Lightweight split capture overlay during active solves.
- */
-
 import React, { useCallback, useEffect, useMemo } from "react";
 import { DurationMs, SplitInstance, SplitPhaseDefinition } from "../../types";
 
@@ -18,38 +14,40 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "var(--space-0)",
-    padding: "var(--space-2)",
+    gap: "1px",
+    padding: "6px",
     backgroundColor: "var(--color-surface)",
-    borderRadius: "var(--border-radius-md)",
+    borderRadius: "4px",
     border: "1px solid var(--color-border)",
-    minWidth: "120px",
+    minWidth: "100px",
     userSelect: "none",
     WebkitUserSelect: "none",
   } as React.CSSProperties,
 
   header: {
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: 600,
     color: "var(--color-text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    marginBottom: "var(--space-0)",
+    marginBottom: "2px",
   } as React.CSSProperties,
 
   phaseRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "2px var(--space-1)",
-    borderRadius: "var(--border-radius-sm)",
-    borderLeft: "2px solid transparent",
-    transition: "all var(--transition-fast)",
+    padding: "2px 4px",
+    borderRadius: "2px",
+    borderLeftWidth: "2px",
+    borderLeftStyle: "solid",
+    borderLeftColor: "transparent",
+    transition: "all 40ms ease-out",
     cursor: "pointer",
   } as React.CSSProperties,
 
   phaseRowCurrent: {
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
+    backgroundColor: "rgba(74, 222, 128, 0.08)",
     borderLeftColor: "var(--color-ready)",
   } as React.CSSProperties,
 
@@ -60,18 +58,18 @@ const styles = {
   phaseInfo: {
     display: "flex",
     alignItems: "center",
-    gap: "var(--space-1)",
+    gap: "4px",
   } as React.CSSProperties,
 
   phaseKey: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-disabled)",
-    minWidth: "10px",
+    minWidth: "8px",
   } as React.CSSProperties,
 
   phaseName: {
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 500,
     color: "var(--color-text-secondary)",
   } as React.CSSProperties,
@@ -87,11 +85,11 @@ const styles = {
 
   phaseTime: {
     fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-xs)",
+    fontSize: "10px",
     fontWeight: 500,
     fontVariantNumeric: "tabular-nums",
     color: "var(--color-text-muted)",
-    minWidth: "32px",
+    minWidth: "28px",
     textAlign: "right",
   } as React.CSSProperties,
 
@@ -100,14 +98,30 @@ const styles = {
   } as React.CSSProperties,
 
   hint: {
-    fontSize: "var(--text-xs)",
+    fontSize: "9px",
     color: "var(--color-text-muted)",
-    marginTop: "var(--space-1)",
+    marginTop: "2px",
     textAlign: "center",
   } as React.CSSProperties,
 
   complete: {
     color: "var(--color-ready)",
+  } as React.CSSProperties,
+
+  kbd: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "10px",
+    padding: "0 2px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "8px",
+    fontWeight: 500,
+    lineHeight: 1.3,
+    color: "var(--color-text-muted)",
+    backgroundColor: "var(--color-surface-raised)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "2px",
   } as React.CSSProperties,
 };
 
@@ -126,20 +140,17 @@ export function SplitMarkers({
   onMarkSplit,
   disabled = false,
 }: SplitMarkersProps) {
-  // Sort phases by order
   const sortedPhases = useMemo(
     () => [...phases].sort((a, b) => a.order - b.order),
     [phases],
   );
 
-  // Determine current phase index (next unmarked phase)
   const currentPhaseIndex = useMemo(() => {
     const markedPhases = new Set(currentSplits.map((s) => s.phase));
     const nextIndex = sortedPhases.findIndex((p) => !markedPhases.has(p.name));
     return nextIndex === -1 ? sortedPhases.length : nextIndex;
   }, [sortedPhases, currentSplits]);
 
-  // Get split time for a phase
   const getSplitTime = useCallback(
     (phaseName: string): DurationMs | null => {
       const split = currentSplits.find((s) => s.phase === phaseName);
@@ -148,11 +159,9 @@ export function SplitMarkers({
     [currentSplits],
   );
 
-  // Handle marking current split
   const handleMarkCurrent = useCallback(() => {
     if (disabled || !isRunning) return;
     if (currentPhaseIndex >= sortedPhases.length) return;
-
     const currentPhase = sortedPhases[currentPhaseIndex];
     if (currentPhase) {
       onMarkSplit(currentPhase.name, elapsedMs);
@@ -166,12 +175,10 @@ export function SplitMarkers({
     onMarkSplit,
   ]);
 
-  // Handle marking specific phase by number
   const handleMarkPhase = useCallback(
     (index: number) => {
       if (disabled || !isRunning) return;
       if (index < 0 || index >= sortedPhases.length) return;
-
       const phase = sortedPhases[index];
       if (phase) {
         onMarkSplit(phase.name, elapsedMs);
@@ -180,15 +187,11 @@ export function SplitMarkers({
     [disabled, isRunning, sortedPhases, elapsedMs, onMarkSplit],
   );
 
-  // Keyboard handler
   useEffect(() => {
     if (!isRunning || disabled) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore Space (used for timer)
       if (e.code === "Space") return;
-
-      // Ignore if typing in input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -196,7 +199,6 @@ export function SplitMarkers({
         return;
       }
 
-      // Number keys 1-9 for specific phases
       if (e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
         const num = parseInt(e.key, 10);
         if (num >= 1 && num <= 9) {
@@ -206,7 +208,6 @@ export function SplitMarkers({
         }
       }
 
-      // Common keys for marking current phase
       if (
         e.code === "KeyS" ||
         e.code === "Enter" ||
@@ -223,7 +224,6 @@ export function SplitMarkers({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isRunning, disabled, handleMarkCurrent, handleMarkPhase]);
 
-  // Don't render if no phases defined
   if (sortedPhases.length === 0) {
     return null;
   }
@@ -233,7 +233,6 @@ export function SplitMarkers({
   return (
     <div style={styles.container}>
       <div style={styles.header as React.CSSProperties}>Splits</div>
-
       {sortedPhases.map((phase, index) => {
         const splitTime = getSplitTime(phase.name);
         const isMarked = splitTime !== null;
@@ -252,8 +251,6 @@ export function SplitMarkers({
                 handleMarkPhase(index);
               }
             }}
-            role="button"
-            tabIndex={-1}
           >
             <div style={styles.phaseInfo}>
               <span style={styles.phaseKey}>{index + 1}</span>
@@ -278,19 +275,17 @@ export function SplitMarkers({
           </div>
         );
       })}
-
       {isRunning && !allMarked && (
         <div style={styles.hint as React.CSSProperties}>
-          <span className="kbd">S</span> or <span className="kbd">1</span>-
-          <span className="kbd">{sortedPhases.length}</span>
+          <span style={styles.kbd}>S</span> or <span style={styles.kbd}>1</span>
+          -<span style={styles.kbd}>{sortedPhases.length}</span>
         </div>
       )}
-
       {allMarked && (
         <div
           style={{ ...styles.hint, ...styles.complete } as React.CSSProperties}
         >
-          ✓ All phases marked
+          ✓ Done
         </div>
       )}
     </div>

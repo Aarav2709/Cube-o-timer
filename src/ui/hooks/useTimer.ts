@@ -1,7 +1,3 @@
-/**
- * useTimer hook for managing timing state with spacebar interaction.
- */
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createTimingEngineState,
@@ -25,10 +21,7 @@ export interface UseTimerReturn {
   isHolding: boolean;
   isReady: boolean;
 
-  // Manual penalty controls (post-solve)
   setPenalty: (penalty: Penalty) => void;
-
-  // Reset for next solve
   reset: () => void;
 }
 

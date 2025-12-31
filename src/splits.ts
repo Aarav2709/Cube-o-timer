@@ -1,12 +1,3 @@
-/**
- * Split / training utilities for configurable phases.
- *
- * Design goals:
- * - Pure, framework-agnostic helpers.
- * - Configurable phase definitions (no hardcoded methods like CFOP).
- * - Validation for ordering and timestamps.
- */
-
 import {
   DurationMs,
   SolveId,

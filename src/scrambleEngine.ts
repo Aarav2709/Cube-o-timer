@@ -1,7 +1,3 @@
-/**
- * Scramble engine for KubeTimr with seeded random-move generators.
- */
-
 import {
   PuzzleId,
   Scramble,

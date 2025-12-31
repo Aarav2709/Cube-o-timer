@@ -1,8 +1,3 @@
-/**
- * Main App component for KubeTimr.
- * Three-column layout with solves list, timer, and stats/settings.
- */
-
 import React, {
   useCallback,
   useEffect,
@@ -20,14 +15,21 @@ import SplitMarkers from "./components/SplitMarkers";
 import SplitBreakdown from "./components/SplitBreakdown";
 import SplitEditor from "./components/SplitEditor";
 import Settings from "./components/Settings";
-import { Penalty, SplitCapture, SplitInstance, TimingResult } from "../types";
+import {
+  Penalty,
+  PuzzleId,
+  SplitCapture,
+  SplitInstance,
+  SolveId,
+  TimingResult,
+} from "../types";
 
 const styles = {
   app: {
-    display: "grid",
-    gridTemplateColumns: "var(--sidebar-width) 1fr var(--sidebar-width)",
+    display: "flex",
+    flexDirection: "row",
+    width: "100vw",
     height: "100vh",
-    maxHeight: "100vh",
     overflow: "hidden",
     backgroundColor: "var(--color-void)",
     color: "var(--color-text-primary)",
@@ -37,9 +39,11 @@ const styles = {
   leftPanel: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    maxHeight: "100vh",
-    overflow: "hidden",
+    width: "var(--sidebar-width)",
+    minWidth: "180px",
+    maxWidth: "var(--sidebar-max-width)",
+    height: "100%",
+    flexShrink: 0,
     backgroundColor: "var(--color-surface)",
     borderRight: "1px solid var(--color-border-subtle)",
     transition: "opacity var(--transition-normal)",
@@ -48,19 +52,18 @@ const styles = {
   centerColumn: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    maxHeight: "100vh",
-    overflow: "hidden",
+    flex: 1,
+    minWidth: 0,
+    height: "100%",
     position: "relative",
   } as React.CSSProperties,
 
   scrambleArea: {
     flexShrink: 0,
-    padding: "var(--space-4) var(--space-6)",
+    padding: "10px 20px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    minHeight: "90px",
     transition: "opacity var(--transition-normal)",
   } as React.CSSProperties,
 
@@ -70,45 +73,48 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: "6vh",
+    paddingTop: "2vh",
+    paddingBottom: "4vh",
     position: "relative",
-    overflow: "hidden",
+    minHeight: 0,
   } as React.CSSProperties,
 
   rightPanel: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    maxHeight: "100vh",
-    overflow: "hidden",
+    width: "var(--sidebar-width)",
+    minWidth: "180px",
+    maxWidth: "var(--sidebar-max-width)",
+    height: "100%",
+    flexShrink: 0,
     backgroundColor: "var(--color-surface)",
     borderLeft: "1px solid var(--color-border-subtle)",
     transition: "opacity var(--transition-normal)",
   } as React.CSSProperties,
 
   statsSection: {
-    flex: 1,
-    overflow: "auto",
-    padding: "var(--space-3)",
-    minHeight: 0,
+    flexShrink: 0,
+    padding: "var(--space-2)",
+    borderBottom: "1px solid var(--color-border-subtle)",
   } as React.CSSProperties,
 
   settingsSection: {
-    flexShrink: 0,
-    padding: "var(--space-3)",
-    borderTop: "1px solid var(--color-border-subtle)",
+    flex: 1,
+    minHeight: 0,
+    overflow: "auto",
+    padding: "var(--space-2)",
   } as React.CSSProperties,
 
   splitBreakdownArea: {
     width: "100%",
-    maxWidth: "380px",
-    padding: "var(--space-3)",
-    marginTop: "var(--space-3)",
+    maxWidth: "360px",
+    padding: "var(--space-2)",
+    marginTop: "var(--space-1)",
   } as React.CSSProperties,
 
   splitMarkersOverlay: {
     position: "absolute",
-    right: "var(--space-4)",
+    right: "var(--space-3)",
     top: "50%",
     transform: "translateY(-50%)",
     zIndex: 10,
@@ -117,7 +123,7 @@ const styles = {
   modalBackdrop: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
     zIndex: 100,
     display: "flex",
     alignItems: "center",
@@ -125,7 +131,7 @@ const styles = {
   } as React.CSSProperties,
 
   modalContent: {
-    maxWidth: "400px",
+    maxWidth: "380px",
     width: "90%",
     maxHeight: "80vh",
     overflow: "auto",
@@ -136,23 +142,40 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "var(--space-2)",
-    padding: "var(--space-2) var(--space-3)",
+    padding: "var(--space-1) var(--space-2)",
     marginTop: "var(--space-2)",
-    fontSize: "var(--text-sm)",
+    fontSize: "var(--text-xs)",
     fontWeight: 500,
     color: "var(--color-text-secondary)",
     backgroundColor: "var(--color-surface-raised)",
     border: "1px solid var(--color-border)",
-    borderRadius: "var(--border-radius-md)",
+    borderRadius: "var(--border-radius-sm)",
     cursor: "pointer",
     transition: "all var(--transition-fast)",
     width: "100%",
+  } as React.CSSProperties,
+
+  trainingButtonKey: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "12px",
+    padding: "0 3px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "8px",
+    fontWeight: 500,
+    lineHeight: 1.3,
+    color: "var(--color-text-muted)",
+    backgroundColor: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "2px",
   } as React.CSSProperties,
 
   loading: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    width: "100vw",
     height: "100vh",
     fontSize: "var(--text-lg)",
     color: "var(--color-text-muted)",
@@ -163,8 +186,8 @@ const styles = {
 
   fullscreenHint: {
     position: "fixed",
-    top: "var(--space-3)",
-    right: "var(--space-3)",
+    top: "var(--space-2)",
+    right: "var(--space-2)",
     padding: "var(--space-1) var(--space-2)",
     fontSize: "var(--text-xs)",
     color: "var(--color-text-muted)",
@@ -176,6 +199,37 @@ const styles = {
     pointerEvents: "none",
     zIndex: 50,
   } as React.CSSProperties,
+
+  importNotice: {
+    position: "fixed",
+    bottom: "var(--space-2)",
+    left: "50%",
+    transform: "translateX(-50%)",
+    padding: "var(--space-1) var(--space-3)",
+    fontSize: "var(--text-xs)",
+    fontWeight: 600,
+    color: "var(--color-text-primary)",
+    backgroundColor: "var(--color-surface-raised)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "var(--border-radius-md)",
+    boxShadow: "0 6px 20px rgba(0, 0, 0, 0.4)",
+    letterSpacing: "0.02em",
+    zIndex: 60,
+  } as React.CSSProperties,
+};
+
+const PUZZLE_LABELS: Record<string, string> = {
+  "333": "3×3",
+  "222": "2×2",
+  "444": "4×4",
+  "555": "5×5",
+  "666": "6×6",
+  "777": "7×7",
+  pyram: "Pyraminx",
+  skewb: "Skewb",
+  sq1: "Square-1",
+  clock: "Clock",
+  minx: "Megaminx",
 };
 
 function isFullscreen(): boolean {
@@ -272,8 +326,16 @@ function AppContent() {
   const [showSplitEditor, setShowSplitEditor] = useState(false);
   const [isFullscreenMode, setIsFullscreenMode] = useState(false);
   const [showFullscreenHint, setShowFullscreenHint] = useState(false);
+  const [selectedSolveId, setSelectedSolveId] = useState<SolveId | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   const fullscreenHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const cursorHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const importNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
@@ -282,6 +344,7 @@ function AppContent() {
       if (!state.currentScramble) return;
 
       const solve = addSolve(result, state.currentScramble);
+      setSelectedSolveId(solve.id);
 
       if (state.settings.trainingModeEnabled && currentSplits.length > 0) {
         const capture: SplitCapture = {
@@ -308,6 +371,17 @@ function AppContent() {
     onSolveComplete: handleSolveComplete,
   });
 
+  const handlePuzzleChange = useCallback(
+    (puzzleId: PuzzleId) => {
+      timer.reset();
+      setCurrentSplits([]);
+      setLastSolveCapture(null);
+      setSelectedSolveId(null);
+      setActivePuzzle(puzzleId);
+    },
+    [setActivePuzzle, timer],
+  );
+
   const handleMarkSplit = useCallback((phase: string, timestampMs: number) => {
     setCurrentSplits((prev) => {
       const existing = prev.findIndex((s) => s.phase === phase);
@@ -327,8 +401,39 @@ function AppContent() {
     }
   }, [timer.status]);
 
+  useEffect(() => {
+    if (activeSolves.length === 0) {
+      setSelectedSolveId(null);
+      return;
+    }
+    if (
+      !selectedSolveId ||
+      !activeSolves.some((s) => s.id === selectedSolveId)
+    ) {
+      setSelectedSolveId(activeSolves[activeSolves.length - 1]?.id ?? null);
+    }
+  }, [activeSolves, selectedSolveId]);
+
+  const handleDeleteSolve = useCallback(
+    (solveId: SolveId) => {
+      deleteSolve(solveId);
+      setSelectedSolveId((prev) => {
+        if (prev !== solveId) return prev;
+        const remaining = activeSolves.filter((s) => s.id !== solveId);
+        const fallback = remaining[remaining.length - 1]?.id ?? null;
+        return fallback;
+      });
+    },
+    [deleteSolve, activeSolves],
+  );
+
   const timerActive =
     timer.status === "running" || timer.status === "inspection";
+
+  const selectedSolve = useMemo(
+    () => activeSolves.find((s) => s.id === selectedSolveId) ?? null,
+    [activeSolves, selectedSolveId],
+  );
 
   const isLatestPB = useMemo(() => {
     if (!stats || activeSolves.length === 0) return false;
@@ -381,6 +486,43 @@ function AppContent() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreenMode) {
+      document.body.style.cursor = "";
+      if (cursorHideTimeoutRef.current) {
+        clearTimeout(cursorHideTimeoutRef.current);
+      }
+      return;
+    }
+
+    const resetCursor = () => {
+      document.body.style.cursor = "";
+      if (cursorHideTimeoutRef.current) {
+        clearTimeout(cursorHideTimeoutRef.current);
+      }
+      cursorHideTimeoutRef.current = setTimeout(() => {
+        document.body.style.cursor = "none";
+      }, 1400);
+    };
+
+    resetCursor();
+
+    const handleMove = () => resetCursor();
+    const handleKey = () => resetCursor();
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("keydown", handleKey);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("keydown", handleKey);
+      if (cursorHideTimeoutRef.current) {
+        clearTimeout(cursorHideTimeoutRef.current);
+      }
+      document.body.style.cursor = "";
+    };
+  }, [isFullscreenMode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -459,16 +601,48 @@ function AppContent() {
     updateSettings,
   ]);
 
+  const handleImportCSTimer = useCallback(
+    (data: Parameters<typeof importCSTimerData>[0]) => {
+      const summary = importCSTimerData(data);
+      timer.reset();
+      setCurrentSplits([]);
+      setLastSolveCapture(null);
+      setSelectedSolveId(null);
+
+      if (importNoticeTimeoutRef.current) {
+        clearTimeout(importNoticeTimeoutRef.current);
+      }
+
+      const puzzleLabel = PUZZLE_LABELS[summary.puzzleId] ?? summary.puzzleId;
+      const parts: string[] = [];
+      if (summary.plus2 > 0) {
+        parts.push(`${summary.plus2} +2`);
+      }
+      if (summary.dnfs > 0) {
+        parts.push(`${summary.dnfs} DNF${summary.dnfs !== 1 ? "s" : ""}`);
+      }
+      parts.push(puzzleLabel);
+      const message = `${summary.imported} solve${summary.imported !== 1 ? "s" : ""} imported${parts.length ? ` · ${parts.join(" · ")}` : ""}`;
+
+      setImportNotice(message);
+      importNoticeTimeoutRef.current = setTimeout(() => {
+        setImportNotice(null);
+      }, 3400);
+
+      return summary;
+    },
+    [importCSTimerData, timer],
+  );
+
   if (!state.initialized) {
     return <div style={styles.loading}>KubeTimr</div>;
   }
 
-  const panelOpacity = timerActive ? 0.12 : 1;
+  const panelOpacity = timerActive ? 0.08 : 1;
   const panelPointerEvents = timerActive ? "none" : "auto";
 
   return (
     <div style={styles.app}>
-      {/* Left panel: Solves list */}
       <div
         style={{
           ...styles.leftPanel,
@@ -478,25 +652,30 @@ function AppContent() {
       >
         <SolveList
           solves={activeSolves}
+          selectedSolveId={selectedSolveId}
+          onSelectSolve={setSelectedSolveId}
           onPenaltyChange={updateSolvePenalty}
-          onDelete={deleteSolve}
+          onDelete={handleDeleteSolve}
           disabled={timerActive}
         />
       </div>
 
-      {/* Center: Scramble + Timer */}
       <div style={styles.centerColumn}>
         <div
           style={{
             ...styles.scrambleArea,
-            opacity: timerActive ? 0.08 : 1,
+            opacity: timerActive ? 0.05 : 1,
             pointerEvents: panelPointerEvents,
           }}
         >
           <ScrambleDisplay
-            scramble={state.currentScramble}
+            scramble={
+              timerActive
+                ? state.currentScramble
+                : (selectedSolve?.scramble ?? state.currentScramble)
+            }
             activePuzzleId={state.activePuzzleId}
-            onPuzzleChange={setActivePuzzle}
+            onPuzzleChange={handlePuzzleChange}
             onRefresh={refreshScramble}
             disabled={timerActive}
           />
@@ -541,7 +720,6 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Right panel: Stats + Settings */}
       <div
         style={{
           ...styles.rightPanel,
@@ -551,11 +729,12 @@ function AppContent() {
       >
         <div style={styles.statsSection} className="hide-scrollbar">
           <StatsPanel
-            stats={stats?.rolling ?? null}
+            stats={stats ?? null}
             personalBests={stats?.personalBests ?? []}
             moXAo5Value={state.settings.moXAo5Value}
             onMoXAo5Change={(value) => updateSettings({ moXAo5Value: value })}
             solveCount={activeSolves.length}
+            selectedSolveId={selectedSolveId}
           />
         </div>
 
@@ -569,7 +748,15 @@ function AppContent() {
             onTrainingModeChange={(enabled) =>
               updateSettings({ trainingModeEnabled: enabled })
             }
-            onImportCSTimer={importCSTimerData}
+            hideTimeDuringSolve={state.settings.hideTimeDuringSolve}
+            onHideTimeDuringSolveChange={(enabled) =>
+              updateSettings({ hideTimeDuringSolve: enabled })
+            }
+            showMilliseconds={state.settings.showMilliseconds}
+            onShowMillisecondsChange={(enabled) =>
+              updateSettings({ showMilliseconds: enabled })
+            }
+            onImportCSTimer={handleImportCSTimer}
             disabled={timerActive}
           />
 
@@ -580,24 +767,27 @@ function AppContent() {
               aria-label="Edit split phases"
             >
               <span>Edit Split Phases</span>
-              <span className="kbd">E</span>
+              <span style={styles.trainingButtonKey}>E</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Fullscreen hint */}
       <div
         style={{
           ...styles.fullscreenHint,
           opacity: showFullscreenHint ? 1 : 0,
         }}
       >
-        Press <span className="kbd">Esc</span> or <span className="kbd">F</span>{" "}
-        to exit
+        Press Esc or F to exit
       </div>
 
-      {/* Split editor modal */}
+      {importNotice && (
+        <div style={styles.importNotice as React.CSSProperties}>
+          {importNotice}
+        </div>
+      )}
+
       {showSplitEditor && (
         <div
           style={styles.modalBackdrop as React.CSSProperties}
