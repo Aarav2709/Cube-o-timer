@@ -28,10 +28,10 @@ const styles = {
   app: {
     display: "flex",
     flexDirection: "row",
-    width: "100vw",
-    height: "100vh",
+    width: "100%",
+    height: "100%",
     overflow: "hidden",
-    backgroundColor: "var(--color-void)",
+    backgroundColor: "#000000",
     color: "var(--color-text-primary)",
     fontFamily: "var(--font-ui)",
   } as React.CSSProperties,
@@ -45,7 +45,9 @@ const styles = {
     height: "100%",
     flexShrink: 0,
     backgroundColor: "var(--color-surface)",
-    borderRight: "1px solid var(--color-border-subtle)",
+    borderRightWidth: "1px",
+    borderRightStyle: "solid",
+    borderRightColor: "var(--color-border-subtle)",
     transition: "opacity var(--transition-normal)",
   } as React.CSSProperties,
 
@@ -60,10 +62,11 @@ const styles = {
 
   scrambleArea: {
     flexShrink: 0,
-    padding: "10px 20px",
+    padding: "8px 16px",
     display: "flex",
-    justifyContent: "center",
+    flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
     transition: "opacity var(--transition-normal)",
   } as React.CSSProperties,
 
@@ -73,8 +76,6 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: "2vh",
-    paddingBottom: "4vh",
     position: "relative",
     minHeight: 0,
   } as React.CSSProperties,
@@ -88,14 +89,20 @@ const styles = {
     height: "100%",
     flexShrink: 0,
     backgroundColor: "var(--color-surface)",
-    borderLeft: "1px solid var(--color-border-subtle)",
+    borderLeftWidth: "1px",
+    borderLeftStyle: "solid",
+    borderLeftColor: "var(--color-border-subtle)",
     transition: "opacity var(--transition-normal)",
   } as React.CSSProperties,
 
   statsSection: {
     flexShrink: 0,
     padding: "var(--space-2)",
-    borderBottom: "1px solid var(--color-border-subtle)",
+    borderBottomWidth: "1px",
+    borderBottomStyle: "solid",
+    borderBottomColor: "var(--color-border-subtle)",
+    maxHeight: "45%",
+    overflow: "auto",
   } as React.CSSProperties,
 
   settingsSection: {
@@ -107,7 +114,7 @@ const styles = {
 
   splitBreakdownArea: {
     width: "100%",
-    maxWidth: "360px",
+    maxWidth: "320px",
     padding: "var(--space-2)",
     marginTop: "var(--space-1)",
   } as React.CSSProperties,
@@ -148,7 +155,9 @@ const styles = {
     fontWeight: 500,
     color: "var(--color-text-secondary)",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "var(--border-radius-sm)",
     cursor: "pointer",
     transition: "all var(--transition-fast)",
@@ -167,7 +176,9 @@ const styles = {
     lineHeight: 1.3,
     color: "var(--color-text-muted)",
     backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "2px",
   } as React.CSSProperties,
 
@@ -175,8 +186,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "100vw",
-    height: "100vh",
+    width: "100%",
+    height: "100%",
     fontSize: "var(--text-lg)",
     color: "var(--color-text-muted)",
     fontWeight: 500,
@@ -192,7 +203,9 @@ const styles = {
     fontSize: "var(--text-xs)",
     color: "var(--color-text-muted)",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "var(--border-radius-sm)",
     opacity: 0,
     transition: "opacity var(--transition-normal)",
@@ -210,11 +223,72 @@ const styles = {
     fontWeight: 600,
     color: "var(--color-text-primary)",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "var(--border-radius-md)",
     boxShadow: "0 6px 20px rgba(0, 0, 0, 0.4)",
     letterSpacing: "0.02em",
     zIndex: 60,
+  } as React.CSSProperties,
+
+  mobileHeader: {
+    display: "none",
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "6px 12px",
+    paddingTop: "calc(env(safe-area-inset-top, 0px) + 6px)",
+    backgroundColor: "var(--color-surface)",
+    borderBottomWidth: "1px",
+    borderBottomStyle: "solid",
+    borderBottomColor: "var(--color-border-subtle)",
+  } as React.CSSProperties,
+
+  mobileMenuBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "32px",
+    height: "32px",
+    color: "var(--color-text-secondary)",
+    backgroundColor: "var(--color-surface-raised)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
+    borderRadius: "var(--border-radius-sm)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  mobileLogo: {
+    height: "20px",
+    width: "auto",
+    opacity: 0.7,
+  } as React.CSSProperties,
+
+  drawer: {
+    position: "fixed",
+    top: 0,
+    bottom: 0,
+    width: "85%",
+    maxWidth: "300px",
+    backgroundColor: "var(--color-surface)",
+    zIndex: 200,
+    transition: "transform 200ms ease-out",
+    display: "flex",
+    flexDirection: "column",
+    paddingTop: "env(safe-area-inset-top, 0px)",
+    paddingBottom: "env(safe-area-inset-bottom, 0px)",
+  } as React.CSSProperties,
+
+  drawerBackdrop: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    zIndex: 199,
+    opacity: 0,
+    pointerEvents: "none",
+    transition: "opacity 200ms ease-out",
   } as React.CSSProperties,
 };
 
@@ -257,20 +331,6 @@ async function toggleFullscreen(): Promise<void> {
         await (
           elem as unknown as { webkitRequestFullscreen: () => Promise<void> }
         ).webkitRequestFullscreen();
-      } else if (
-        (elem as unknown as { mozRequestFullScreen?: () => Promise<void> })
-          .mozRequestFullScreen
-      ) {
-        await (
-          elem as unknown as { mozRequestFullScreen: () => Promise<void> }
-        ).mozRequestFullScreen();
-      } else if (
-        (elem as unknown as { msRequestFullscreen?: () => Promise<void> })
-          .msRequestFullscreen
-      ) {
-        await (
-          elem as unknown as { msRequestFullscreen: () => Promise<void> }
-        ).msRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
@@ -282,25 +342,24 @@ async function toggleFullscreen(): Promise<void> {
         await (
           document as unknown as { webkitExitFullscreen: () => Promise<void> }
         ).webkitExitFullscreen();
-      } else if (
-        (document as unknown as { mozCancelFullScreen?: () => Promise<void> })
-          .mozCancelFullScreen
-      ) {
-        await (
-          document as unknown as { mozCancelFullScreen: () => Promise<void> }
-        ).mozCancelFullScreen();
-      } else if (
-        (document as unknown as { msExitFullscreen?: () => Promise<void> })
-          .msExitFullscreen
-      ) {
-        await (
-          document as unknown as { msExitFullscreen: () => Promise<void> }
-        ).msExitFullscreen();
       }
     }
   } catch (err) {
     console.warn("Fullscreen toggle failed:", err);
   }
+}
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  return isMobile;
 }
 
 function AppContent() {
@@ -328,6 +387,8 @@ function AppContent() {
   const [showFullscreenHint, setShowFullscreenHint] = useState(false);
   const [selectedSolveId, setSelectedSolveId] = useState<SolveId | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
 
   const fullscreenHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -338,6 +399,8 @@ function AppContent() {
   const importNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+
+  const isMobile = useIsMobile();
 
   const handleSolveComplete = useCallback(
     (result: TimingResult) => {
@@ -464,21 +527,11 @@ function AppContent() {
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
-    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener(
         "webkitfullscreenchange",
-        handleFullscreenChange,
-      );
-      document.removeEventListener(
-        "mozfullscreenchange",
-        handleFullscreenChange,
-      );
-      document.removeEventListener(
-        "MSFullscreenChange",
         handleFullscreenChange,
       );
       if (fullscreenHintTimeoutRef.current) {
@@ -550,6 +603,16 @@ function AppContent() {
           return;
         }
 
+        if (leftDrawerOpen) {
+          setLeftDrawerOpen(false);
+          return;
+        }
+
+        if (rightDrawerOpen) {
+          setRightDrawerOpen(false);
+          return;
+        }
+
         if (isFullscreenMode) {
           toggleFullscreen();
           return;
@@ -596,6 +659,8 @@ function AppContent() {
     timerActive,
     showSplitEditor,
     isFullscreenMode,
+    leftDrawerOpen,
+    rightDrawerOpen,
     state.settings.inspectionEnabled,
     state.settings.trainingModeEnabled,
     updateSettings,
@@ -634,6 +699,13 @@ function AppContent() {
     [importCSTimerData, timer],
   );
 
+  useEffect(() => {
+    if (timerActive) {
+      setLeftDrawerOpen(false);
+      setRightDrawerOpen(false);
+    }
+  }, [timerActive]);
+
   if (!state.initialized) {
     return <div style={styles.loading}>KubeTimr</div>;
   }
@@ -641,24 +713,171 @@ function AppContent() {
   const panelOpacity = timerActive ? 0.08 : 1;
   const panelPointerEvents = timerActive ? "none" : "auto";
 
-  return (
-    <div style={styles.app}>
-      <div
-        style={{
-          ...styles.leftPanel,
-          opacity: panelOpacity,
-          pointerEvents: panelPointerEvents,
-        }}
-      >
-        <SolveList
-          solves={activeSolves}
+  const leftPanelContent = (
+    <SolveList
+      solves={activeSolves}
+      selectedSolveId={selectedSolveId}
+      onSelectSolve={setSelectedSolveId}
+      onPenaltyChange={updateSolvePenalty}
+      onDelete={handleDeleteSolve}
+      disabled={timerActive}
+    />
+  );
+
+  const rightPanelContent = (
+    <>
+      <div style={styles.statsSection} className="hide-scrollbar">
+        <StatsPanel
+          stats={stats ?? null}
+          personalBests={stats?.personalBests ?? []}
+          moXAo5Value={state.settings.moXAo5Value}
+          onMoXAo5Change={(value) => updateSettings({ moXAo5Value: value })}
+          solveCount={activeSolves.length}
           selectedSolveId={selectedSolveId}
-          onSelectSolve={setSelectedSolveId}
-          onPenaltyChange={updateSolvePenalty}
-          onDelete={handleDeleteSolve}
-          disabled={timerActive}
         />
       </div>
+
+      <div style={styles.settingsSection}>
+        <Settings
+          inspectionEnabled={state.settings.inspectionEnabled}
+          onInspectionChange={(enabled) =>
+            updateSettings({ inspectionEnabled: enabled })
+          }
+          trainingModeEnabled={state.settings.trainingModeEnabled}
+          onTrainingModeChange={(enabled) =>
+            updateSettings({ trainingModeEnabled: enabled })
+          }
+          hideTimeDuringSolve={state.settings.hideTimeDuringSolve}
+          onHideTimeDuringSolveChange={(enabled) =>
+            updateSettings({ hideTimeDuringSolve: enabled })
+          }
+          showMilliseconds={state.settings.showMilliseconds}
+          onShowMillisecondsChange={(enabled) =>
+            updateSettings({ showMilliseconds: enabled })
+          }
+          onImportCSTimer={handleImportCSTimer}
+          disabled={timerActive}
+        />
+
+        {state.settings.trainingModeEnabled && (
+          <button
+            onClick={() => setShowSplitEditor(true)}
+            style={styles.trainingButton}
+            aria-label="Edit split phases"
+          >
+            <span>Edit Split Phases</span>
+            <span style={styles.trainingButtonKey}>E</span>
+          </button>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div style={styles.app}>
+      {isMobile && (
+        <div
+          style={{
+            ...styles.mobileHeader,
+            display: "flex",
+          }}
+        >
+          <button
+            style={styles.mobileMenuBtn}
+            onClick={() => setLeftDrawerOpen(true)}
+            aria-label="Open solves"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          <img
+            src="/src/public/logo.png"
+            alt="KubeTimr"
+            style={styles.mobileLogo}
+          />
+
+          <button
+            style={styles.mobileMenuBtn}
+            onClick={() => setRightDrawerOpen(true)}
+            aria-label="Open settings"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {isMobile && (
+        <>
+          <div
+            style={{
+              ...styles.drawerBackdrop,
+              opacity: leftDrawerOpen || rightDrawerOpen ? 1 : 0,
+              pointerEvents:
+                leftDrawerOpen || rightDrawerOpen ? "auto" : "none",
+            }}
+            onClick={() => {
+              setLeftDrawerOpen(false);
+              setRightDrawerOpen(false);
+            }}
+          />
+
+          <div
+            style={{
+              ...styles.drawer,
+              left: 0,
+              transform: leftDrawerOpen ? "translateX(0)" : "translateX(-100%)",
+            }}
+          >
+            {leftPanelContent}
+          </div>
+
+          <div
+            style={{
+              ...styles.drawer,
+              right: 0,
+              left: "auto",
+              transform: rightDrawerOpen ? "translateX(0)" : "translateX(100%)",
+            }}
+          >
+            {rightPanelContent}
+          </div>
+        </>
+      )}
+
+      {!isMobile && (
+        <div
+          style={{
+            ...styles.leftPanel,
+            opacity: panelOpacity,
+            pointerEvents: panelPointerEvents,
+          }}
+        >
+          {leftPanelContent}
+        </div>
+      )}
 
       <div style={styles.centerColumn}>
         <div
@@ -678,6 +897,7 @@ function AppContent() {
             onPuzzleChange={handlePuzzleChange}
             onRefresh={refreshScramble}
             disabled={timerActive}
+            loading={state.scrambleLoading}
           />
         </div>
 
@@ -720,58 +940,17 @@ function AppContent() {
         </div>
       </div>
 
-      <div
-        style={{
-          ...styles.rightPanel,
-          opacity: panelOpacity,
-          pointerEvents: panelPointerEvents,
-        }}
-      >
-        <div style={styles.statsSection} className="hide-scrollbar">
-          <StatsPanel
-            stats={stats ?? null}
-            personalBests={stats?.personalBests ?? []}
-            moXAo5Value={state.settings.moXAo5Value}
-            onMoXAo5Change={(value) => updateSettings({ moXAo5Value: value })}
-            solveCount={activeSolves.length}
-            selectedSolveId={selectedSolveId}
-          />
+      {!isMobile && (
+        <div
+          style={{
+            ...styles.rightPanel,
+            opacity: panelOpacity,
+            pointerEvents: panelPointerEvents,
+          }}
+        >
+          {rightPanelContent}
         </div>
-
-        <div style={styles.settingsSection}>
-          <Settings
-            inspectionEnabled={state.settings.inspectionEnabled}
-            onInspectionChange={(enabled) =>
-              updateSettings({ inspectionEnabled: enabled })
-            }
-            trainingModeEnabled={state.settings.trainingModeEnabled}
-            onTrainingModeChange={(enabled) =>
-              updateSettings({ trainingModeEnabled: enabled })
-            }
-            hideTimeDuringSolve={state.settings.hideTimeDuringSolve}
-            onHideTimeDuringSolveChange={(enabled) =>
-              updateSettings({ hideTimeDuringSolve: enabled })
-            }
-            showMilliseconds={state.settings.showMilliseconds}
-            onShowMillisecondsChange={(enabled) =>
-              updateSettings({ showMilliseconds: enabled })
-            }
-            onImportCSTimer={handleImportCSTimer}
-            disabled={timerActive}
-          />
-
-          {state.settings.trainingModeEnabled && (
-            <button
-              onClick={() => setShowSplitEditor(true)}
-              style={styles.trainingButton}
-              aria-label="Edit split phases"
-            >
-              <span>Edit Split Phases</span>
-              <span style={styles.trainingButtonKey}>E</span>
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       <div
         style={{

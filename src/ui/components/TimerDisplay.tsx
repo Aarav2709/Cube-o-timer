@@ -117,14 +117,15 @@ const styles = {
     justifyContent: "center",
     userSelect: "none",
     WebkitUserSelect: "none",
-    padding: "8px",
+    padding: "4px",
+    touchAction: "manipulation",
   } as React.CSSProperties,
 
   timeWrapper: {
     display: "flex",
     alignItems: "baseline",
     justifyContent: "center",
-    lineHeight: 0.85,
+    lineHeight: 1,
   } as React.CSSProperties,
 
   mainDigits: {
@@ -134,52 +135,51 @@ const styles = {
     fontVariantNumeric: "tabular-nums slashed-zero",
     fontFeatureSettings: '"tnum" 1, "zero" 1, "kern" 1',
     letterSpacing: "var(--timer-letter-spacing)",
-    lineHeight: 0.85,
+    lineHeight: 1,
     transition: "color 40ms ease-out",
   } as React.CSSProperties,
 
   decimalPoint: {
     fontFamily: "var(--font-mono)",
-    fontSize: "calc(var(--timer-font-size) * 0.62)",
+    fontSize: "calc(var(--timer-font-size) * 0.65)",
     fontWeight: "var(--timer-font-weight)",
     fontVariantNumeric: "tabular-nums",
-    opacity: 0.65,
-    margin: "0 -0.02em",
+    opacity: 0.6,
+    margin: "0 -0.01em",
     display: "inline-block",
-    transform: "translateY(-0.12em)",
     transition: "color 40ms ease-out",
   } as React.CSSProperties,
 
   decimalDigits: {
     fontFamily: "var(--font-mono)",
-    fontSize: "calc(var(--timer-font-size) * 0.72)",
+    fontSize: "calc(var(--timer-font-size) * 0.7)",
     fontWeight: "var(--timer-font-weight)",
     fontVariantNumeric: "tabular-nums slashed-zero",
     fontFeatureSettings: '"tnum" 1, "zero" 1',
     letterSpacing: "-0.02em",
-    lineHeight: 0.85,
-    opacity: 0.68,
+    lineHeight: 1,
+    opacity: 0.65,
     transition: "color 40ms ease-out, opacity 80ms ease-out",
   } as React.CSSProperties,
 
   decimalDigitsTrailing: {
-    opacity: 0.45,
+    opacity: 0.4,
   } as React.CSSProperties,
 
   penaltyBadge: {
     fontFamily: "var(--font-mono)",
-    fontSize: "clamp(0.9rem, 2.5vw, 1.8rem)",
+    fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
     fontWeight: 600,
-    marginTop: "6px",
+    marginTop: "4px",
     letterSpacing: "0.02em",
   } as React.CSSProperties,
 
   hint: {
     fontFamily: "var(--font-ui)",
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: 400,
     color: "var(--color-text-disabled)",
-    marginTop: "12px",
+    marginTop: "8px",
     textAlign: "center",
     letterSpacing: "0.01em",
     transition: "opacity 80ms ease-out",
@@ -190,13 +190,13 @@ const styles = {
     alignItems: "center",
     gap: "4px",
     fontFamily: "var(--font-ui)",
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: 600,
     color: "var(--color-pb)",
-    marginTop: "6px",
-    padding: "2px 8px",
+    marginTop: "4px",
+    padding: "2px 6px",
     backgroundColor: "rgba(167, 139, 250, 0.1)",
-    borderRadius: "4px",
+    borderRadius: "3px",
     letterSpacing: "0.04em",
     textTransform: "uppercase",
   } as React.CSSProperties,
@@ -277,8 +277,8 @@ export function TimerDisplay({
         ? "var(--color-warn)"
         : color;
 
-  const decimalOpacity = status === "stopped" ? 0.58 : 0.72;
-  const decimalTailOpacity = status === "stopped" ? 0.38 : decimalOpacity;
+  const decimalOpacity = status === "stopped" ? 0.55 : 0.7;
+  const decimalTailOpacity = status === "stopped" ? 0.35 : decimalOpacity;
 
   const decimalFirst = displayContent.decimal?.slice(0, 1) ?? "";
   const decimalTail = displayContent.decimal?.slice(1) ?? "";

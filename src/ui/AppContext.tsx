@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   ReactNode,
 } from "react";
 import {
@@ -26,7 +27,7 @@ import {
   CSTimerSolveImport,
 } from "../types";
 import { loadPersistedData, savePersistedData } from "../persistence";
-import { generateScramble } from "../scrambleEngine";
+import { generateScrambleAsync } from "../scrambleEngine";
 import { computeSessionStats, SessionStatsResult } from "../statsEngine";
 
 export interface AppSettings {
@@ -52,6 +53,7 @@ export interface AppState {
   activeSessionId: SessionId | null;
   activePuzzleId: PuzzleId;
   currentScramble: Scramble | null;
+  scrambleLoading: boolean;
   settings: AppSettings;
 }
 
@@ -60,6 +62,7 @@ type AppAction =
   | { type: "SET_ACTIVE_SESSION"; payload: SessionId }
   | { type: "SET_ACTIVE_PUZZLE"; payload: PuzzleId }
   | { type: "SET_SCRAMBLE"; payload: Scramble }
+  | { type: "SET_SCRAMBLE_LOADING"; payload: boolean }
   | { type: "ADD_SESSION"; payload: Session }
   | { type: "ADD_SOLVE"; payload: Solve }
   | { type: "ADD_SOLVES_BATCH"; payload: Solve[] }
@@ -77,7 +80,6 @@ export interface AppContextValue {
   stats: SessionStatsResult | null;
   activeSolves: Solve[];
 
-  /* Actions */
   setActivePuzzle: (puzzleId: PuzzleId) => void;
   refreshScramble: () => void;
   addSolve: (timing: TimingResult, scramble: Scramble) => Solve;
@@ -130,6 +132,7 @@ const INITIAL_STATE: AppState = {
   activeSessionId: null,
   activePuzzleId: "333",
   currentScramble: null,
+  scrambleLoading: true,
   settings: DEFAULT_SETTINGS,
 };
 
@@ -218,8 +221,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         }
       }
 
-      const scramble = generateScramble({ puzzleId: activePuzzleId });
-
       return {
         ...state,
         initialized: true,
@@ -229,7 +230,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         activeSessionId,
         activePuzzleId,
         settings: persistedSettings,
-        currentScramble: scramble,
+        currentScramble: null,
+        scrambleLoading: true,
       };
     }
 
@@ -246,7 +248,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         sessions = [...state.sessions, session];
       }
 
-      const scramble = generateScramble({ puzzleId });
       const settings = { ...state.settings, lastPuzzleId: puzzleId };
 
       return {
@@ -254,13 +255,21 @@ function appReducer(state: AppState, action: AppAction): AppState {
         sessions,
         activePuzzleId: puzzleId,
         activeSessionId: session.id,
-        currentScramble: scramble,
+        currentScramble: null,
+        scrambleLoading: true,
         settings,
       };
     }
 
     case "SET_SCRAMBLE":
-      return { ...state, currentScramble: action.payload };
+      return {
+        ...state,
+        currentScramble: action.payload,
+        scrambleLoading: false,
+      };
+
+    case "SET_SCRAMBLE_LOADING":
+      return { ...state, scrambleLoading: action.payload };
 
     case "ADD_SESSION":
       return { ...state, sessions: [...state.sessions, action.payload] };
@@ -335,6 +344,17 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const [state, dispatch] = useReducer(appReducer, INITIAL_STATE);
 
+  const loadScramble = useCallback(async (puzzleId: PuzzleId) => {
+    dispatch({ type: "SET_SCRAMBLE_LOADING", payload: true });
+    try {
+      const scramble = await generateScrambleAsync(puzzleId);
+      dispatch({ type: "SET_SCRAMBLE", payload: scramble });
+    } catch (err) {
+      console.error("Failed to generate scramble:", err);
+      dispatch({ type: "SET_SCRAMBLE_LOADING", payload: false });
+    }
+  }, []);
+
   useEffect(() => {
     loadPersistedData()
       .then((data) => {
@@ -355,6 +375,28 @@ export function AppProvider({ children }: AppProviderProps) {
         });
       });
   }, []);
+
+  const prevPuzzleIdRef = useRef<PuzzleId | null>(null);
+
+  useEffect(() => {
+    if (!state.initialized) return;
+
+    const puzzleChanged =
+      prevPuzzleIdRef.current !== null &&
+      prevPuzzleIdRef.current !== state.activePuzzleId;
+    const needsScramble = !state.currentScramble || puzzleChanged;
+
+    if (needsScramble) {
+      loadScramble(state.activePuzzleId);
+    }
+
+    prevPuzzleIdRef.current = state.activePuzzleId;
+  }, [
+    state.initialized,
+    state.activePuzzleId,
+    state.currentScramble,
+    loadScramble,
+  ]);
 
   useEffect(() => {
     if (!state.initialized) return;
@@ -401,9 +443,8 @@ export function AppProvider({ children }: AppProviderProps) {
   }, []);
 
   const refreshScramble = useCallback(() => {
-    const scramble = generateScramble({ puzzleId: state.activePuzzleId });
-    dispatch({ type: "SET_SCRAMBLE", payload: scramble });
-  }, [state.activePuzzleId]);
+    loadScramble(state.activePuzzleId);
+  }, [state.activePuzzleId, loadScramble]);
 
   const addSolve = useCallback(
     (timing: TimingResult, scramble: Scramble): Solve => {
@@ -416,11 +457,10 @@ export function AppProvider({ children }: AppProviderProps) {
         createdAt: new Date().toISOString(),
       };
       dispatch({ type: "ADD_SOLVE", payload: solve });
-      const newScramble = generateScramble({ puzzleId: state.activePuzzleId });
-      dispatch({ type: "SET_SCRAMBLE", payload: newScramble });
+      loadScramble(state.activePuzzleId);
       return solve;
     },
-    [state.activeSessionId, state.activePuzzleId],
+    [state.activeSessionId, state.activePuzzleId, loadScramble],
   );
 
   const updateSolvePenalty = useCallback(

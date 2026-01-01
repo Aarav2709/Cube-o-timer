@@ -28,7 +28,9 @@ const styles = {
     padding: "8px",
     backgroundColor: "var(--color-surface)",
     borderRadius: "4px",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
   } as React.CSSProperties,
 
   header: {
@@ -58,7 +60,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     padding: "2px 0",
-    borderBottom: "1px solid var(--color-border-subtle)",
+    borderBottomWidth: "1px",
+    borderBottomStyle: "solid",
+    borderBottomColor: "var(--color-border-subtle)",
   } as React.CSSProperties,
 
   phaseName: {
@@ -130,7 +134,9 @@ const styles = {
     alignItems: "center",
     padding: "2px 0",
     marginTop: "2px",
-    borderTop: "1px solid var(--color-border-subtle)",
+    borderTopWidth: "1px",
+    borderTopStyle: "solid",
+    borderTopColor: "var(--color-border-subtle)",
   } as React.CSSProperties,
 
   summaryLabel: {

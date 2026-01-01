@@ -49,6 +49,7 @@ export function useTimer(options: UseTimerOptions): UseTimerReturn {
   const holdStartRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const keyDownRef = useRef(false);
+  const touchActiveRef = useRef(false);
 
   useEffect(() => {
     setEngineState((prev) => ({
@@ -104,6 +105,58 @@ export function useTimer(options: UseTimerOptions): UseTimerReturn {
     engineState.inspectionStartTs,
   ]);
 
+  const startHold = useCallback(() => {
+    const status = engineState.status;
+    if (status === "idle" || status === "stopped") {
+      holdStartRef.current = performance.now();
+      setIsHolding(true);
+      setIsReady(false);
+    }
+  }, [engineState.status]);
+
+  const releaseHold = useCallback(() => {
+    const status = engineState.status;
+
+    if (status === "idle" || status === "stopped") {
+      const holdDuration = holdStartRef.current
+        ? performance.now() - holdStartRef.current
+        : 0;
+
+      if (holdDuration >= HOLD_THRESHOLD_MS) {
+        const newState = handleSpacebar(engineState);
+        setEngineState(newState);
+        setDisplayTime(0);
+
+        if (newState.status === "inspection") {
+          setInspectionRemaining(Math.ceil(INSPECTION_DURATION_MS / 1000));
+        }
+      }
+
+      holdStartRef.current = null;
+      setIsHolding(false);
+      setIsReady(false);
+    }
+  }, [engineState]);
+
+  const stopTimer = useCallback(() => {
+    const status = engineState.status;
+
+    if (status === "running") {
+      const newState = handleSpacebar(engineState);
+      setEngineState(newState);
+      setDisplayTime(newState.result?.rawDurationMs ?? 0);
+
+      if (newState.result && onSolveComplete) {
+        onSolveComplete(newState.result);
+      }
+    } else if (status === "inspection") {
+      const newState = handleSpacebar(engineState);
+      setEngineState(newState);
+      setInspectionRemaining(null);
+      setDisplayTime(0);
+    }
+  }, [engineState, onSolveComplete]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat) return;
@@ -115,25 +168,14 @@ export function useTimer(options: UseTimerOptions): UseTimerReturn {
       const status = engineState.status;
 
       if (status === "running") {
-        const newState = handleSpacebar(engineState);
-        setEngineState(newState);
-        setDisplayTime(newState.result?.rawDurationMs ?? 0);
-
-        if (newState.result && onSolveComplete) {
-          onSolveComplete(newState.result);
-        }
+        stopTimer();
       } else if (status === "inspection") {
-        const newState = handleSpacebar(engineState);
-        setEngineState(newState);
-        setInspectionRemaining(null);
-        setDisplayTime(0);
+        stopTimer();
       } else if (status === "idle" || status === "stopped") {
-        holdStartRef.current = performance.now();
-        setIsHolding(true);
-        setIsReady(false);
+        startHold();
       }
     },
-    [engineState, onSolveComplete],
+    [engineState.status, stopTimer, startHold],
   );
 
   const handleKeyUp = useCallback(
@@ -142,31 +184,54 @@ export function useTimer(options: UseTimerOptions): UseTimerReturn {
       e.preventDefault();
 
       keyDownRef.current = false;
+      releaseHold();
+    },
+    [releaseHold],
+  );
+
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      if (
+        e.target instanceof HTMLButtonElement ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLSelectElement ||
+        (e.target instanceof Element && e.target.closest("button"))
+      ) {
+        return;
+      }
 
       const status = engineState.status;
 
-      if (status === "idle" || status === "stopped") {
-        const holdDuration = holdStartRef.current
-          ? performance.now() - holdStartRef.current
-          : 0;
-
-        if (holdDuration >= HOLD_THRESHOLD_MS) {
-          const newState = handleSpacebar(engineState);
-          setEngineState(newState);
-          setDisplayTime(0);
-
-          if (newState.status === "inspection") {
-            setInspectionRemaining(Math.ceil(INSPECTION_DURATION_MS / 1000));
-          }
-        }
-
-        holdStartRef.current = null;
-        setIsHolding(false);
-        setIsReady(false);
+      if (status === "running" || status === "inspection") {
+        e.preventDefault();
+        touchActiveRef.current = true;
+        stopTimer();
+      } else if (status === "idle" || status === "stopped") {
+        e.preventDefault();
+        touchActiveRef.current = true;
+        startHold();
       }
     },
-    [engineState],
+    [engineState.status, stopTimer, startHold],
   );
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent) => {
+      if (!touchActiveRef.current) return;
+      e.preventDefault();
+      touchActiveRef.current = false;
+      releaseHold();
+    },
+    [releaseHold],
+  );
+
+  const handleTouchCancel = useCallback(() => {
+    if (!touchActiveRef.current) return;
+    touchActiveRef.current = false;
+    holdStartRef.current = null;
+    setIsHolding(false);
+    setIsReady(false);
+  }, []);
 
   useEffect(() => {
     if (!isHolding) return;
@@ -189,12 +254,44 @@ export function useTimer(options: UseTimerOptions): UseTimerReturn {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    document.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    document.addEventListener("touchend", handleTouchEnd, { passive: false });
+    document.addEventListener("touchcancel", handleTouchCancel);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchcancel", handleTouchCancel);
     };
-  }, [handleKeyDown, handleKeyUp]);
+  }, [
+    handleKeyDown,
+    handleKeyUp,
+    handleTouchStart,
+    handleTouchEnd,
+    handleTouchCancel,
+  ]);
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (keyDownRef.current) {
+        keyDownRef.current = false;
+        releaseHold();
+      }
+      if (touchActiveRef.current) {
+        touchActiveRef.current = false;
+        holdStartRef.current = null;
+        setIsHolding(false);
+        setIsReady(false);
+      }
+    };
+
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
+  }, [releaseHold]);
 
   const setPenalty = useCallback((penalty: Penalty) => {
     setEngineState((prev) => {

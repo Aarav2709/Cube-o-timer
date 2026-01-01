@@ -152,7 +152,9 @@ const styles = {
     lineHeight: 1.2,
     color: "var(--color-text-muted)",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "2px",
   } as React.CSSProperties,
 
@@ -177,7 +179,9 @@ const styles = {
     fontWeight: 500,
     backgroundColor: "var(--color-surface-raised)",
     color: "var(--color-text-primary)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "3px",
     cursor: "pointer",
     minWidth: "80px",
@@ -191,7 +195,9 @@ const styles = {
   segmentedControl: {
     display: "flex",
     backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "4px",
     overflow: "hidden",
   } as React.CSSProperties,
@@ -204,14 +210,17 @@ const styles = {
     fontWeight: 500,
     color: "var(--color-text-muted)",
     backgroundColor: "transparent",
-    border: "none",
+    borderWidth: 0,
+    borderStyle: "solid",
+    borderColor: "transparent",
+    borderRightWidth: "1px",
+    borderRightColor: "var(--color-border)",
     cursor: "pointer",
     transition: "all 40ms ease-out",
-    borderRight: "1px solid var(--color-border)",
   } as React.CSSProperties,
 
   segmentButtonLast: {
-    borderRight: "none",
+    borderRightWidth: 0,
   } as React.CSSProperties,
 
   segmentButtonActive: {
@@ -228,7 +237,9 @@ const styles = {
   importSection: {
     marginTop: "8px",
     paddingTop: "8px",
-    borderTop: "1px solid var(--color-border-subtle)",
+    borderTopWidth: "1px",
+    borderTopStyle: "solid",
+    borderTopColor: "var(--color-border-subtle)",
   } as React.CSSProperties,
 
   importZone: {
@@ -280,13 +291,17 @@ const styles = {
   importSuccess: {
     color: "var(--color-ready)",
     backgroundColor: "rgba(74, 222, 128, 0.08)",
-    border: "1px solid rgba(74, 222, 128, 0.2)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "rgba(74, 222, 128, 0.2)",
   } as React.CSSProperties,
 
   importError: {
     color: "var(--color-error)",
     backgroundColor: "rgba(248, 113, 113, 0.08)",
-    border: "1px solid rgba(248, 113, 113, 0.2)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "rgba(248, 113, 113, 0.2)",
   } as React.CSSProperties,
 
   importDetails: {
@@ -311,7 +326,9 @@ const styles = {
 
   modal: {
     backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "8px",
     padding: "20px",
     minWidth: "280px",
@@ -345,7 +362,9 @@ const styles = {
     fontWeight: 500,
     color: "var(--color-text-secondary)",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "4px",
     cursor: "pointer",
     transition: "all 40ms ease-out",
@@ -381,13 +400,17 @@ const styles = {
   modalButtonCancel: {
     color: "var(--color-text-muted)",
     backgroundColor: "transparent",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
   } as React.CSSProperties,
 
   modalButtonConfirm: {
     color: "var(--color-void)",
     backgroundColor: "var(--color-focus)",
-    border: "1px solid var(--color-focus)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-focus)",
   } as React.CSSProperties,
 
   fileInfo: {

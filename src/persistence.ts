@@ -6,15 +6,9 @@ export interface PersistenceAdapter {
 }
 
 export interface PersistenceConfig {
-  /** When true, force file-backed storage even if IndexedDB is available. */
-  preferFile?: boolean;
-  /** Custom file path for JSON persistence (defaults to cwd/persistence.json). */
-  filePath?: string;
-  /** Optional IndexedDB database name override. */
   indexedDbName?: string;
 }
 
-const DEFAULT_FILE_NAME = "kubetimr-data.json";
 const DEFAULT_DB_NAME = "kubetimr";
 
 const DEFAULT_DATA: PersistedData = {
@@ -28,47 +22,12 @@ const DEFAULT_DATA: PersistedData = {
 
 function validateSchema(data: PersistedData): PersistedData {
   if (data.schemaVersion !== CURRENT_SCHEMA_VERSION) {
-    throw new Error(
-      `Unsupported schema version ${data.schemaVersion}; expected ${CURRENT_SCHEMA_VERSION}.`,
+    console.warn(
+      `Schema version mismatch: ${data.schemaVersion} vs ${CURRENT_SCHEMA_VERSION}. Using defaults.`,
     );
+    return DEFAULT_DATA;
   }
   return { ...DEFAULT_DATA, ...data };
-}
-
-class FileAdapter implements PersistenceAdapter {
-  private filePath: string;
-
-  constructor(filePath?: string) {
-    this.filePath = filePath ?? DEFAULT_FILE_NAME;
-  }
-
-  async load(): Promise<PersistedData> {
-    try {
-      // Dynamic import for Node.js modules (not available in browsers)
-      const fs = await import("fs").then((m) => m.promises);
-      const path = await import("path");
-      const fullPath = path.isAbsolute(this.filePath)
-        ? this.filePath
-        : path.join(process.cwd(), this.filePath);
-
-      const raw = await fs.readFile(fullPath, "utf-8");
-      const parsed = JSON.parse(raw);
-      return validateSchema(parsed as PersistedData);
-    } catch (err: unknown) {
-      // Missing file or parse error: fall back to default data.
-      return DEFAULT_DATA;
-    }
-  }
-
-  async save(data: PersistedData): Promise<void> {
-    const fs = await import("fs").then((m) => m.promises);
-    const path = await import("path");
-    const fullPath = path.isAbsolute(this.filePath)
-      ? this.filePath
-      : path.join(process.cwd(), this.filePath);
-
-    await fs.writeFile(fullPath, JSON.stringify(data, null, 2), "utf-8");
-  }
 }
 
 class IndexedDbAdapter implements PersistenceAdapter {
@@ -150,6 +109,18 @@ class LocalStorageAdapter implements PersistenceAdapter {
   }
 }
 
+class MemoryAdapter implements PersistenceAdapter {
+  private data: PersistedData = DEFAULT_DATA;
+
+  async load(): Promise<PersistedData> {
+    return this.data;
+  }
+
+  async save(data: PersistedData): Promise<void> {
+    this.data = data;
+  }
+}
+
 function hasIndexedDb(): boolean {
   try {
     return typeof indexedDB !== "undefined" && indexedDB !== null;
@@ -166,21 +137,9 @@ function hasLocalStorage(): boolean {
   }
 }
 
-function isNodeEnvironment(): boolean {
-  return (
-    typeof process !== "undefined" &&
-    process.versions != null &&
-    process.versions.node != null
-  );
-}
-
 export function createPersistenceAdapter(
   config: PersistenceConfig = {},
 ): PersistenceAdapter {
-  if (config.preferFile && isNodeEnvironment()) {
-    return new FileAdapter(config.filePath);
-  }
-
   if (hasIndexedDb()) {
     return new IndexedDbAdapter(config.indexedDbName);
   }
@@ -189,19 +148,7 @@ export function createPersistenceAdapter(
     return new LocalStorageAdapter(config.indexedDbName);
   }
 
-  if (isNodeEnvironment()) {
-    return new FileAdapter(config.filePath);
-  }
-
-  return {
-    _data: DEFAULT_DATA,
-    async load() {
-      return this._data;
-    },
-    async save(data: PersistedData) {
-      this._data = data;
-    },
-  } as PersistenceAdapter & { _data: PersistedData };
+  return new MemoryAdapter();
 }
 
 export async function loadPersistedData(

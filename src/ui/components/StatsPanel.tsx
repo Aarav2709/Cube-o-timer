@@ -179,7 +179,9 @@ const styles = {
     padding: "8px",
     backgroundColor: "var(--color-surface)",
     borderRadius: "4px",
-    border: "1px solid var(--color-border-subtle)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border-subtle)",
   } as React.CSSProperties,
 
   moXAo5Header: {

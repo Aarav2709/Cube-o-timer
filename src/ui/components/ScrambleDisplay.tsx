@@ -13,6 +13,7 @@ export interface ScrambleDisplayProps {
   onPuzzleChange: (puzzleId: PuzzleId) => void;
   onRefresh: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }
 
 const PUZZLE_LABELS: Record<WcaEventId, string> = {
@@ -48,9 +49,16 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "6px",
+    gap: "4px",
     width: "100%",
-    maxWidth: "680px",
+    maxWidth: "640px",
+  } as React.CSSProperties,
+
+  topRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
   } as React.CSSProperties,
 
   dropdownContainer: {
@@ -112,7 +120,9 @@ const styles = {
     maxHeight: "240px",
     overflowY: "auto",
     backgroundColor: "var(--color-surface-raised)",
-    border: "1px solid var(--color-border)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
     borderRadius: "4px",
     boxShadow: "0 6px 20px rgba(0, 0, 0, 0.45)",
     padding: "2px 0",
@@ -151,7 +161,11 @@ const styles = {
   scrambleContainer: {
     width: "100%",
     textAlign: "center",
-    padding: "0 12px",
+    padding: "0 8px",
+    minHeight: "42px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   } as React.CSSProperties,
 
   scrambleText: {
@@ -159,22 +173,73 @@ const styles = {
     fontSize: "var(--scramble-font-size)",
     fontWeight: "var(--scramble-font-weight)",
     color: "var(--color-text-primary)",
-    lineHeight: 1.55,
+    lineHeight: 1.5,
     letterSpacing: "var(--scramble-letter-spacing)",
     wordBreak: "break-word",
     hyphens: "none",
-    maxWidth: "560px",
+    maxWidth: "540px",
     margin: "0 auto",
   } as React.CSSProperties,
 
   scrambleTextMultiLine: {
     whiteSpace: "pre-wrap",
     fontSize: "var(--text-sm)",
-    lineHeight: 1.65,
+    lineHeight: 1.6,
   } as React.CSSProperties,
 
   scrambleLoading: {
-    opacity: 0.3,
+    color: "var(--color-text-muted)",
+    fontSize: "var(--text-sm)",
+    fontFamily: "var(--font-ui)",
+    fontWeight: 500,
+  } as React.CSSProperties,
+
+  refreshButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "2px 8px",
+    fontSize: "10px",
+    fontFamily: "var(--font-ui)",
+    fontWeight: 500,
+    color: "var(--color-text-muted)",
+    backgroundColor: "transparent",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "transparent",
+    borderRadius: "3px",
+    cursor: "pointer",
+    transition: "all 40ms ease-out",
+    marginTop: "2px",
+  } as React.CSSProperties,
+
+  refreshButtonHover: {
+    color: "var(--color-text-secondary)",
+    backgroundColor: "var(--color-surface-raised)",
+    borderColor: "var(--color-border)",
+  } as React.CSSProperties,
+
+  refreshButtonDisabled: {
+    opacity: 0.4,
+    cursor: "not-allowed",
+  } as React.CSSProperties,
+
+  kbd: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "12px",
+    padding: "0 3px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "8px",
+    fontWeight: 500,
+    lineHeight: 1.3,
+    color: "var(--color-text-muted)",
+    backgroundColor: "var(--color-surface)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--color-border)",
+    borderRadius: "2px",
   } as React.CSSProperties,
 };
 
@@ -228,9 +293,11 @@ export function ScrambleDisplay({
   onPuzzleChange,
   onRefresh,
   disabled = false,
+  loading = false,
 }: ScrambleDisplayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isRefreshHovered, setIsRefreshHovered] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [filterQuery, setFilterQuery] = useState("");
@@ -402,108 +469,113 @@ export function ScrambleDisplay({
   );
 
   const scrambleLines = useMemo(
-    () => (scramble ? formatScrambleLines(scramble.notation) : []),
+    () => (scramble?.notation ? formatScrambleLines(scramble.notation) : []),
     [scramble],
   );
   const isMultiLine = scrambleLines.length > 1;
+  const hasScramble = scramble?.notation && scramble.notation.length > 0;
 
   return (
     <div style={styles.container}>
-      <div
-        ref={containerRef}
-        style={styles.dropdownContainer as React.CSSProperties}
-        onKeyDown={handleMenuKeyDown}
-      >
-        <button
-          type="button"
-          onClick={handleToggle}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onFocus={() => setIsHovered(true)}
-          onBlur={() => setIsHovered(false)}
-          style={{
-            ...styles.dropdownTrigger,
-            ...(isHovered && !disabled && !isOpen
-              ? styles.dropdownTriggerHover
-              : {}),
-            ...(isOpen ? styles.dropdownTriggerOpen : {}),
-            ...(disabled ? styles.dropdownTriggerDisabled : {}),
-          }}
-          disabled={disabled}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          aria-label="Select puzzle type"
+      <div style={styles.topRow}>
+        <div
+          ref={containerRef}
+          style={styles.dropdownContainer as React.CSSProperties}
+          onKeyDown={handleMenuKeyDown}
         >
-          <span>{PUZZLE_LABELS[activePuzzleId as WcaEventId] || "3×3"}</span>
-          <svg
-            width="9"
-            height="9"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <button
+            type="button"
+            onClick={handleToggle}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onFocus={() => setIsHovered(true)}
+            onBlur={() => setIsHovered(false)}
             style={{
-              ...styles.dropdownArrow,
-              ...(isOpen ? styles.dropdownArrowOpen : {}),
+              ...styles.dropdownTrigger,
+              ...(isHovered && !disabled && !isOpen
+                ? styles.dropdownTriggerHover
+                : {}),
+              ...(isOpen ? styles.dropdownTriggerOpen : {}),
+              ...(disabled ? styles.dropdownTriggerDisabled : {}),
             }}
-            aria-hidden="true"
+            disabled={disabled}
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+            aria-label="Select puzzle type"
           >
-            <path d="M2 4l4 4 4-4" />
-          </svg>
-        </button>
+            <span>{PUZZLE_LABELS[activePuzzleId as WcaEventId] || "3×3"}</span>
+            <svg
+              width="9"
+              height="9"
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                ...styles.dropdownArrow,
+                ...(isOpen ? styles.dropdownArrowOpen : {}),
+              }}
+              aria-hidden="true"
+            >
+              <path d="M2 4l4 4 4-4" />
+            </svg>
+          </button>
 
-        {isOpen && (
-          <div
-            ref={menuRef}
-            style={styles.dropdownMenu as React.CSSProperties}
-            role="listbox"
-            aria-activedescendant={
-              filteredCurrentIndex >= 0
-                ? `puzzle-${filteredPuzzles[filteredCurrentIndex]}`
-                : undefined
-            }
-          >
-            {filteredPuzzles.length === 0 && (
-              <div style={{ ...styles.dropdownItem, opacity: 0.5 }}>
-                No matches
-              </div>
-            )}
-            {filteredPuzzles.map((id, index) => {
-              const isSelected = id === activePuzzleId;
-              const isFocused = index === focusedIndex;
-              const isItemHovered = index === hoveredIndex;
-
-              return (
-                <div
-                  key={id}
-                  id={`puzzle-${id}`}
-                  data-puzzle-item
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => handleSelect(id)}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(-1)}
-                  style={{
-                    ...styles.dropdownItem,
-                    ...(isSelected ? styles.dropdownItemSelected : {}),
-                    ...(isFocused && !isItemHovered
-                      ? styles.dropdownItemFocused
-                      : {}),
-                    ...(isItemHovered ? styles.dropdownItemHover : {}),
-                  }}
-                >
-                  {PUZZLE_LABELS[id]}
+          {isOpen && (
+            <div
+              ref={menuRef}
+              style={styles.dropdownMenu as React.CSSProperties}
+              role="listbox"
+              aria-activedescendant={
+                filteredCurrentIndex >= 0
+                  ? `puzzle-${filteredPuzzles[filteredCurrentIndex]}`
+                  : undefined
+              }
+            >
+              {filteredPuzzles.length === 0 && (
+                <div style={{ ...styles.dropdownItem, opacity: 0.5 }}>
+                  No matches
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+              {filteredPuzzles.map((id, index) => {
+                const isSelected = id === activePuzzleId;
+                const isFocused = index === focusedIndex;
+                const isItemHovered = index === hoveredIndex;
+
+                return (
+                  <div
+                    key={id}
+                    id={`puzzle-${id}`}
+                    data-puzzle-item
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => handleSelect(id)}
+                    onMouseEnter={() => setHoveredIndex(index)}
+                    onMouseLeave={() => setHoveredIndex(-1)}
+                    style={{
+                      ...styles.dropdownItem,
+                      ...(isSelected ? styles.dropdownItemSelected : {}),
+                      ...(isFocused && !isItemHovered
+                        ? styles.dropdownItemFocused
+                        : {}),
+                      ...(isItemHovered ? styles.dropdownItemHover : {}),
+                    }}
+                  >
+                    {PUZZLE_LABELS[id]}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={styles.scrambleContainer as React.CSSProperties}>
-        {scramble ? (
+        {loading ? (
+          <div style={styles.scrambleLoading}>Generating scramble...</div>
+        ) : hasScramble ? (
           <div
             style={{
               ...styles.scrambleText,
@@ -518,16 +590,28 @@ export function ScrambleDisplay({
             ))}
           </div>
         ) : (
-          <div
-            style={{
-              ...styles.scrambleText,
-              ...styles.scrambleLoading,
-            }}
-          >
-            Generating...
-          </div>
+          <div style={styles.scrambleLoading}>No scramble</div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={onRefresh}
+        onMouseEnter={() => setIsRefreshHovered(true)}
+        onMouseLeave={() => setIsRefreshHovered(false)}
+        disabled={disabled || loading}
+        style={{
+          ...styles.refreshButton,
+          ...(isRefreshHovered && !disabled && !loading
+            ? styles.refreshButtonHover
+            : {}),
+          ...(disabled || loading ? styles.refreshButtonDisabled : {}),
+        }}
+        aria-label="Generate new scramble"
+      >
+        <span>New scramble</span>
+        <span style={styles.kbd}>R</span>
+      </button>
     </div>
   );
 }
